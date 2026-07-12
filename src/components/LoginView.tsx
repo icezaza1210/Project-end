@@ -14,6 +14,8 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
   const [staffCode, setStaffCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isRegister, setIsRegister] = useState(false);
+  const [phone, setPhone] = useState('');
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -28,6 +30,10 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         setError('กรุณาระบุรหัสนักศึกษาอย่างน้อย 8 หลัก');
         return;
       }
+      if (isRegister && !phone.trim()) {
+        setError('กรุณาระบุเบอร์โทรศัพท์สำหรับติดต่อ');
+        return;
+      }
       onLogin({
         name: name.trim(),
         id: studentId.trim(),
@@ -39,7 +45,11 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         setError('กรุณาระบุชื่อสตาฟฟ์ผู้ดูแล');
         return;
       }
-      if (staffCode !== 'staff123' && staffCode.trim() !== '') {
+      if (isRegister && staffCode.trim() === '') {
+        setError('กรุณาตั้งรหัสผ่านสำหรับสตาฟฟ์');
+        return;
+      }
+      if (!isRegister && staffCode !== 'staff123' && staffCode.trim() !== '') {
         setError('รหัสผ่านสตาฟฟ์ไม่ถูกต้อง (กรุณาใช้รหัสแนะนำ: staff123 หรือเว้นว่างไว้เพื่อทดสอบ)');
         return;
       }
@@ -182,21 +192,38 @@ export default function LoginView({ onLogin }: LoginViewProps) {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">ภาควิชา / คณะวิทยาศาสตร์</label>
-                  <select
-                    value={selectedDept}
-                    onChange={(e) => setSelectedDept(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition text-gray-700 font-medium"
-                    id="input-login-student-dept"
-                  >
-                    {DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {isRegister && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">เบอร์โทรศัพท์ติดต่อ</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="เช่น 0812345678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-mono"
+                      id="input-register-phone"
+                    />
+                  </div>
+                )}
+
+                {isRegister && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">ภาควิชา / คณะวิทยาศาสตร์</label>
+                    <select
+                      value={selectedDept}
+                      onChange={(e) => setSelectedDept(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition text-gray-700 font-medium"
+                      id="input-login-student-dept"
+                    >
+                      {DEPARTMENTS.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             ) : (
               /* STAFF FORM */
@@ -217,11 +244,26 @@ export default function LoginView({ onLogin }: LoginViewProps) {
                   </div>
                 </div>
 
+                {isRegister && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">เบอร์โทรศัพท์ติดต่อ</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="เช่น 0812345678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-mono"
+                      id="input-register-staff-phone"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">รหัสผ่านสตาฟฟ์ (Staff Access Code)</label>
                   <input
                     type="password"
-                    placeholder="กรอกรหัส หรือเว้นว่าง (รหัสแนะนำ: staff123)"
+                    placeholder={isRegister ? "ตั้งรหัสผ่านสำหรับเข้าสู่ระบบ" : "กรอกรหัส หรือเว้นว่าง (รหัสแนะนำ: staff123)"}
                     value={staffCode}
                     onChange={(e) => setStaffCode(e.target.value)}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-mono"
@@ -237,9 +279,27 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               className="w-full py-3 bg-[#397d54] hover:bg-[#2c5f3f] text-white text-xs font-extrabold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md cursor-pointer mt-6"
               id="btn-login-submit"
             >
-              เข้าสู่ระบบตรวจสอบและจองคิว
+              {isRegister ? 'สมัครสมาชิกและเข้าสู่ระบบ' : 'เข้าสู่ระบบตรวจสอบและจองคิว'}
               <ArrowRight size={14} />
             </button>
+            
+            <div className="text-center text-xs text-gray-500 mt-4 pt-2">
+              {isRegister ? (
+                <>
+                  มีบัญชีอยู่แล้ว?{' '}
+                  <button type="button" onClick={() => setIsRegister(false)} className="text-[#397d54] font-bold hover:underline cursor-pointer">
+                    เข้าสู่ระบบ
+                  </button>
+                </>
+              ) : (
+                <>
+                  ยังไม่มีบัญชี?{' '}
+                  <button type="button" onClick={() => setIsRegister(true)} className="text-[#397d54] font-bold hover:underline cursor-pointer">
+                    ลงทะเบียนใช้งาน
+                  </button>
+                </>
+              )}
+            </div>
           </form>
 
           {/* Quick Sandbox Login Section */}
