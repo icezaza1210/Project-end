@@ -1,0 +1,6 @@
+{
+  "name": "Sci-Sports Equipment Borrowing",
+  "description": "ระบบยืม-คืนอุปกรณ์กีฬาออนไลน์และติดตามสถานะแบบเรียลไทม์ คณะวิทยาศาสตร์",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
