@@ -1,0 +1,480 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { INITIAL_EQUIPMENT, INITIAL_LOGS } from './data';
+import { Equipment, Booking, ActivityLog, User } from './types';
+import EquipmentGrid from './components/EquipmentGrid';
+import BookingForm from './components/BookingForm';
+import LiveFeed from './components/LiveFeed';
+import AdminPanel from './components/AdminPanel';
+import PRDView from './components/PRDView';
+import LoginView from './components/LoginView';
+import { Trophy, Compass, ClipboardList, Shield, BookOpen, AlertCircle, Sparkles, LogOut, Lock } from 'lucide-react';
+
+export default function App() {
+  // Main states
+  const [user, setUser] = useState<User | null>(null);
+  const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
+  const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'prd'>('catalog');
+  const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
+
+  // Helper to push a new activity log
+  const pushLog = (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
+    const time = new Date();
+    const timestampStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')} น.`;
+    const newLog: ActivityLog = {
+      id: `log-${Date.now()}`,
+      timestamp: timestampStr,
+      message,
+      type
+    };
+    setLogs((prev) => [...prev, newLog]);
+  };
+
+  // 1. Submit online booking (Pending state)
+  const handleSubmitBooking = (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
+    const ticketCode = `SCI-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newBooking: Booking = {
+      ...bookingData,
+      id: `booking-${Date.now()}`,
+      ticketCode,
+      createdAt: new Date().toLocaleTimeString('th-TH'),
+      status: 'pending',
+    };
+
+    setBookings((prev) => [...prev, newBooking]);
+    pushLog(
+      `${bookingData.studentName} (${bookingData.studentId.substring(0, 3)}xxx) ได้จอง ${bookingData.equipmentName} จำนวน ${bookingData.quantity} ชิ้น`,
+      'booking'
+    );
+  };
+
+  // 2. Staff approves the booking (Approved state) -> Deducts availableStock
+  const handleApproveBooking = (bookingId: string) => {
+    const targetBooking = bookings.find((b) => b.id === bookingId);
+    if (!targetBooking) return;
+
+    // Deduct stock
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === targetBooking.equipmentId) {
+          const nextStock = Math.max(0, eq.availableStock - targetBooking.quantity);
+          return {
+            ...eq,
+            availableStock: nextStock,
+            status: nextStock === 0 ? 'borrowed' : eq.status,
+          };
+        }
+        return eq;
+      })
+    );
+
+    // Update booking status
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'approved' } : b))
+    );
+
+    pushLog(
+      `สตาฟฟ์อนุมัติคิวจอง ${targetBooking.ticketCode} (${targetBooking.equipmentName}) เรียบร้อยแล้ว`,
+      'booking'
+    );
+  };
+
+  // 3. Staff hands over the physical item (Active/Borrowed state)
+  const handlePickupBooking = (bookingId: string) => {
+    const targetBooking = bookings.find((b) => b.id === bookingId);
+    if (!targetBooking) return;
+
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'active' } : b))
+    );
+
+    pushLog(
+      `${targetBooking.studentName} รับมอบ ${targetBooking.equipmentName} ออกนอกห้องสโมสรฯ แล้ว`,
+      'borrow'
+    );
+  };
+
+  // 4. Staff rejects the booking (Rejected state)
+  const handleRejectBooking = (bookingId: string) => {
+    const targetBooking = bookings.find((b) => b.id === bookingId);
+    if (!targetBooking) return;
+
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'rejected' } : b))
+    );
+
+    pushLog(`สตาฟฟ์ปฏิเสธคิวจอง ${targetBooking.ticketCode} ของ ${targetBooking.studentName}`, 'system');
+  };
+
+  // 5. Staff processes item return (Returned state) -> Adds back to stock
+  const handleReturnBooking = (bookingId: string) => {
+    const targetBooking = bookings.find((b) => b.id === bookingId);
+    if (!targetBooking) return;
+
+    // Restore stock
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === targetBooking.equipmentId) {
+          const nextStock = Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity);
+          return {
+            ...eq,
+            availableStock: nextStock,
+            status: 'available', // Reset status as items are available again
+          };
+        }
+        return eq;
+      })
+    );
+
+    // Update booking status
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'returned' } : b))
+    );
+
+    pushLog(
+      `ได้รับคืน ${targetBooking.equipmentName} (${targetBooking.quantity} ชิ้น) จาก ${targetBooking.studentName} สต็อกอัพเดทแล้ว`,
+      'return'
+    );
+  };
+
+  // 6. User cancels their booking
+  const handleCancelBooking = (bookingId: string) => {
+    const targetBooking = bookings.find((b) => b.id === bookingId);
+    if (!targetBooking) return;
+
+    // If already approved, return the stock back to catalog
+    if (targetBooking.status === 'approved') {
+      setEquipment((prevEq) =>
+        prevEq.map((eq) => {
+          if (eq.id === targetBooking.equipmentId) {
+            return {
+              ...eq,
+              availableStock: Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity),
+            };
+          }
+          return eq;
+        })
+      );
+    }
+
+    setBookings((prevBookings) => prevBookings.filter((b) => b.id !== bookingId));
+    pushLog(`ผู้ใช้ยกเลิกคิวจองหมายเลข ${targetBooking.ticketCode} ด้วยตัวเอง`, 'system');
+  };
+
+  // 7. Toggle maintenance mode of equipment
+  const handleToggleMaintenance = (equipmentId: string) => {
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === equipmentId) {
+          const isNowMaint = eq.status !== 'maintenance';
+          
+          if (isNowMaint) {
+            pushLog(`สตาฟฟ์นำ ${eq.thaiName} เข้าสู่โหมดส่งซ่อมบำรุงชั่วคราว`, 'maintenance');
+            return {
+              ...eq,
+              status: 'maintenance',
+              availableStock: 0 // Cannot borrow during maintenance
+            };
+          } else {
+            pushLog(`นำ ${eq.thaiName} กลับมาเปิดให้บริการตามปกติ`, 'system');
+            return {
+              ...eq,
+              status: 'available',
+              availableStock: eq.totalStock // Recover original stock
+            };
+          }
+        }
+        return eq;
+      })
+    );
+  };
+
+  // Action helper when user clicks book online from a card
+  const handleQuickBookSelect = (item: Equipment) => {
+    setPreselectedEq(item);
+    setActiveTab('booking');
+  };
+
+  if (!user) {
+    return (
+      <LoginView
+        onLogin={(usr) => {
+          setUser(usr);
+          pushLog(`เข้าสู่ระบบในฐานะ ${usr.role === 'staff' ? 'สตาฟฟ์สโมสรฯ' : 'นักศึกษา'}: ${usr.name} (${usr.id}) สำเร็จ`, 'system');
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#e3e3e4] text-gray-800 font-sans selection:bg-[#397d54] selection:text-white" id="main-layout">
+      {/* Simulation Helper Banner */}
+      <div className="bg-amber-400 text-gray-900 text-center py-1.5 px-4 text-[10px] sm:text-xs font-black flex items-center justify-center gap-1.5 border-b border-amber-500 shadow-inner" id="simulator-info-strip">
+        <Sparkles size={14} className="animate-spin text-amber-900" />
+        <span>โหมดจำลองระบบ: คุณสามารถ "ลองสวมบทนักศึกษา" กดจองของ แล้วสลับแท็บไป "สวมบทสตาฟฟ์" กดยอมรับ/คืนของ เพื่อดูสต็อกอัพเดทเรียลไทม์ได้เลย!</span>
+      </div>
+
+      {/* Primary Sporty Nav Header */}
+      <header className="bg-white border-b border-gray-300 sticky top-0 z-40" id="global-header">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="header-container">
+          <div className="flex justify-between items-center h-16" id="header-flex">
+            {/* Logo/Identity */}
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('catalog')} id="logo-block">
+              <div className="w-10 h-10 bg-[#397d54] rounded-xl flex items-center justify-center border border-emerald-500/10 shadow-sm" id="logo-icon-wrap">
+                <Trophy className="text-[#e0ac04]" size={20} />
+              </div>
+              <div>
+                <h1 className="text-sm font-extrabold text-gray-900 tracking-tight flex items-center gap-1">
+                  SCI-SPORTS
+                  <span className="text-[10px] bg-emerald-50 text-[#397d54] border border-emerald-100 px-1.5 py-0.5 rounded-full font-black">สโมสรนักศึกษา</span>
+                </h1>
+                <p className="text-[10px] text-gray-500 font-semibold tracking-wide">คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร</p>
+              </div>
+            </div>
+
+            {/* Desktop Navigation Menu & User Widget */}
+            <div className="flex items-center gap-3" id="nav-and-user-block">
+              <nav className="flex items-center h-full gap-1" id="nav-menu">
+                <button
+                  onClick={() => { setActiveTab('catalog'); setPreselectedEq(null); }}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    activeTab === 'catalog'
+                      ? 'bg-[#397d54] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  id="btn-nav-catalog"
+                >
+                  <Compass size={14} />
+                  ตรวจสอบอุปกรณ์
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('booking')}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 relative ${
+                    activeTab === 'booking'
+                      ? 'bg-[#397d54] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  id="btn-nav-booking"
+                >
+                  <ClipboardList size={14} />
+                  จองออนไลน์
+                  {bookings.filter(b => b.status === 'pending').length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#e0ac04] text-gray-900 text-[9px] font-black rounded-full flex items-center justify-center animate-bounce">
+                      {bookings.filter(b => b.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    activeTab === 'admin'
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  id="btn-nav-admin"
+                >
+                  <Shield size={14} className="text-[#e0ac04]" />
+                  สตาฟฟ์สโมฯ
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('prd')}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    activeTab === 'prd'
+                      ? 'bg-[#397d54] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  id="btn-nav-prd"
+                >
+                  <BookOpen size={14} />
+                  เอกสาร PRD
+                </button>
+              </nav>
+
+              {/* Active User Widget with Logout */}
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 pl-3 pr-2 py-1 rounded-xl text-xs" id="header-user-widget">
+                <div className="flex flex-col text-right hidden lg:block" id="user-text-info">
+                  <p className="font-extrabold text-emerald-950 leading-tight text-[11px]">{user.name}</p>
+                  <p className="text-[9px] text-[#397d54] font-bold tracking-wider">
+                    {user.role === 'staff' ? 'พี่สตาฟฟ์สโมสรฯ' : `นักศึกษา ID: ${user.id}`}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-[#397d54] text-white rounded-lg flex items-center justify-center font-black text-xs border border-emerald-300 shadow-sm" id="user-avatar" title={user.name}>
+                  {user.name.substring(0, 2)}
+                </div>
+                <button
+                  onClick={() => {
+                    pushLog(`ผู้ใช้ ${user.name} ลงชื่อออกจากระบบ`, 'system');
+                    setUser(null);
+                  }}
+                  className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                  title="ออกจากระบบ"
+                  id="btn-logout"
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container Stage */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" id="stage">
+        {/* Top Live Analytics Feed (Active on Catalog & Form views) */}
+        {activeTab !== 'prd' && (
+          <LiveFeed logs={logs} equipment={equipment} bookings={bookings} />
+        )}
+
+        {/* Modular Content Transitions */}
+        <div className="min-h-[450px]" id="modular-content-panel">
+          <AnimatePresence mode="wait">
+            {activeTab === 'catalog' && (
+              <motion.div
+                key="catalog-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                id="catalog-view-stage"
+              >
+                <EquipmentGrid
+                  equipment={equipment}
+                  onSelectBooking={handleQuickBookSelect}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'booking' && (
+              <motion.div
+                key="booking-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                id="booking-view-stage"
+              >
+                <BookingForm
+                  equipmentList={equipment}
+                  preselectedItem={preselectedEq}
+                  onClearPreselected={() => setPreselectedEq(null)}
+                  onSubmitBooking={handleSubmitBooking}
+                  activeBookings={bookings}
+                  onCancelBooking={handleCancelBooking}
+                  currentUser={user}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'admin' && (
+              <motion.div
+                key="admin-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                id="admin-view-stage"
+              >
+                {user.role !== 'staff' ? (
+                  <div className="bg-white border border-[#e3e3e4] rounded-3xl p-8 sm:p-12 text-center max-w-xl mx-auto my-8 space-y-6 shadow-sm" id="restricted-panel">
+                    <div className="w-16 h-16 bg-amber-50 border border-amber-200 text-[#e0ac04] rounded-2xl flex items-center justify-center mx-auto shadow-sm" id="restricted-icon-box">
+                      <Lock size={32} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-black text-gray-900 tracking-tight">เฉพาะสตาฟฟ์สโมสรนักศึกษาเท่านั้น</h3>
+                      <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
+                        แท็บระบบควบคุมนี้สงวนสิทธิ์ไว้ให้สำหรับ พี่สตาฟฟ์สโมสรฯ เพื่อใช้สำหรับอนุมัติการจอง ส่งมอบอุปกรณ์ และตรวจสอบการส่งคืน
+                      </p>
+                    </div>
+                    
+                    <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl text-left text-xs max-w-md mx-auto space-y-1.5 text-emerald-950" id="bypass-hint-card">
+                      <p className="font-extrabold flex items-center gap-1.5 text-[#397d54]">
+                        💡 ต้องการสวมบทสตาฟฟ์เพื่อทดสอบระบบ?
+                      </p>
+                      <p className="font-light text-gray-600">
+                        คุณสามารถกดปุ่ม "อัพเกรดเป็นสตาฟฟ์ชั่วคราว" ด้านล่างเพื่อสลับสิทธิ์การทดสอบได้ทันทีโดยไม่ต้องออกระบบใหม่
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2" id="bypass-buttons">
+                      <button
+                        onClick={() => {
+                          setUser({
+                            name: 'สตาฟฟ์สมโภช ห้องสโมฯ',
+                            id: 'STAFF-MAIN',
+                            role: 'staff'
+                          });
+                          pushLog(`ผู้ใช้จำลองสลับบทบาทเป็น สตาฟฟ์สโมสรฯ สำเร็จ`, 'system');
+                        }}
+                        className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer"
+                        id="upgrade-to-staff"
+                      >
+                        ⚡ อัพเกรดเป็นสตาฟฟ์ (Staff Bypass)
+                      </button>
+                      <button
+                        onClick={() => {
+                          pushLog(`ผู้ใช้ลงชื่อออกจากระบบเพื่อสลับบัญชี`, 'system');
+                          setUser(null);
+                        }}
+                        className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
+                        id="logout-back-to-login"
+                      >
+                        ล็อกเอาท์สลับบัญชี
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <AdminPanel
+                    bookings={bookings}
+                    equipment={equipment}
+                    onApproveBooking={handleApproveBooking}
+                    onRejectBooking={handleRejectBooking}
+                    onPickupBooking={handlePickupBooking}
+                    onReturnBooking={handleReturnBooking}
+                    onToggleMaintenance={handleToggleMaintenance}
+                  />
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'prd' && (
+              <motion.div
+                key="prd-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                id="prd-view-stage"
+              >
+                <PRDView />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </main>
+
+      {/* Global Footer */}
+      <footer className="bg-white border-t border-gray-300 py-6 mt-16 text-center text-xs text-gray-500" id="global-footer">
+        <div className="max-w-7xl mx-auto px-4" id="footer-container">
+          <p className="font-bold text-gray-700">สโมสรนักศึกษา คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร</p>
+          <p className="mt-1 font-light">ระบบยืม-คืนและจองอุปกรณ์ออนไลน์มินิมอล • ออกแบบสไตล์ Minimalist Sporty Concepts • สีประจำคณะเขียวสากลวิทยาศาสตร์</p>
+          <div className="flex justify-center items-center gap-4 mt-3" id="color-palette-preview">
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#397d54] inline-block"></span> เขียวคณะวิทยาศาสตร์ #397d54 (30%)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#e0ac04] inline-block"></span> ทองสปอร์ต #e0ac04 (10%)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#e3e3e4] inline-block border border-gray-300"></span> เทาพื้นหินอ่อน #e3e3e4 (60%)
+            </span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
