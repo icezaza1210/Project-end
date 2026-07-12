@@ -1,13 +1,14 @@
 import { useState, FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Shield, User, GraduationCap, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { Trophy, Shield, User, GraduationCap, ArrowRight, Sparkles, ArrowLeft } from 'lucide-react';
 import { DEPARTMENTS } from '../data';
 
 interface LoginViewProps {
   onLogin: (user: { name: string; id: string; role: 'student' | 'staff'; department?: string }) => void;
+  onBack?: () => void;
 }
 
-export default function LoginView({ onLogin }: LoginViewProps) {
+export default function LoginView({ onLogin, onBack }: LoginViewProps) {
   const [role, setRole] = useState<'student' | 'staff'>('student');
   const [name, setName] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -80,106 +81,130 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#e3e3e4] px-4 py-12 relative overflow-hidden font-sans" id="login-container">
-      {/* Decorative Sporty Geometry Accent */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#397d54]/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#e0ac04]/10 rounded-full blur-3xl -ml-20 -mb-20"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50/50 px-4 py-8 md:py-12 relative overflow-hidden font-sans" id="login-container">
+      {/* Premium Decorative Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-100/40 via-transparent to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-amber-100/40 via-transparent to-transparent"></div>
+        <div className="absolute inset-0 opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+      </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-md bg-white border border-[#e3e3e4] rounded-3xl overflow-hidden shadow-xl relative z-10"
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[420px] bg-white/80 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] relative z-10 overflow-hidden"
         id="login-card"
       >
-        {/* Dynamic Sporty Header */}
-        <div className="bg-[#397d54] text-white p-8 text-center relative overflow-hidden border-b-4 border-[#e0ac04]" id="login-header-band">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-800/50 via-[#397d54] to-[#397d54]/90 opacity-90"></div>
-          
-          {/* Futuristic Grid Overlay */}
-          <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            type="button"
+            className="absolute top-4 left-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/50 text-gray-500 hover:text-gray-900 hover:bg-white backdrop-blur-md transition-all shadow-sm"
+            title="กลับหน้าแรก"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
 
-          <div className="relative z-10 space-y-3">
+        {/* Dynamic Sporty Header - Redesigned */}
+        <div className="px-8 pt-10 pb-8 text-center relative" id="login-header-band">
+          <div className="relative z-10 flex flex-col items-center gap-4">
             <motion.div 
-              initial={{ scale: 0.8, rotate: -10 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-              className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto border border-white/20 shadow-md backdrop-blur-sm"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.5, type: 'spring', bounce: 0.5 }}
+              className="w-16 h-16 bg-gradient-to-br from-[#397d54] to-[#245236] rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-900/20 text-white relative overflow-hidden"
             >
-              <Trophy className="text-[#e0ac04]" size={28} />
+              <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,transparent_25%,white_25%,white_50%,transparent_50%,transparent_75%,white_75%,white_100%)] bg-[length:4px_4px]"></div>
+              <Trophy size={28} className="relative z-10 text-emerald-50 drop-shadow-sm" />
             </motion.div>
-            <div>
-              <h2 className="text-xl font-black tracking-widest uppercase text-white">SCI-SPORTS BORROW</h2>
-              <p className="text-xs text-emerald-100 font-light mt-1">ระบบจองยืมอุปกรณ์กีฬา คณะวิทยาศาสตร์ มรภ.พระนคร</p>
+            
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-black tracking-tight text-gray-900">
+                SCI-SPORTS
+              </h2>
+              <p className="text-[11px] font-medium text-emerald-700/80 uppercase tracking-widest bg-emerald-50 inline-block px-3 py-1 rounded-full border border-emerald-100/50">
+                Equipment Borrow System
+              </p>
             </div>
           </div>
         </div>
 
         {/* Form Body */}
-        <div className="p-8 space-y-6" id="login-body">
-          {/* Role selector Tabs */}
-          <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200" id="role-selector-tab">
+        <div className="px-8 pb-8 space-y-7" id="login-body">
+          {/* Role selector Tabs - Pill style */}
+          <div className="flex bg-gray-100/80 p-1.5 rounded-2xl backdrop-blur-sm shadow-inner" id="role-selector-tab">
             <button
               type="button"
               onClick={() => { setRole('student'); setError(null); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                 role === 'student'
-                  ? 'bg-white text-[#397d54] shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
+                  ? 'bg-white text-[#397d54] shadow-sm ring-1 ring-black/5'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
               }`}
               id="role-btn-student"
             >
-              <GraduationCap size={16} />
-              นักศึกษา (Student)
+              <GraduationCap size={16} className={role === 'student' ? 'text-[#397d54]' : 'opacity-70'} />
+              นักศึกษา
             </button>
             <button
               type="button"
               onClick={() => { setRole('staff'); setError(null); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                 role === 'staff'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
+                  ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
               }`}
               id="role-btn-staff"
             >
-              <Shield size={15} />
-              สตาฟฟ์ (Staff Admin)
+              <Shield size={15} className={role === 'staff' ? 'text-gray-900' : 'opacity-70'} />
+              สตาฟฟ์
             </button>
           </div>
 
           {error && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="px-4 py-3 bg-rose-50/80 backdrop-blur-sm border border-rose-100 text-rose-700 text-[11px] font-medium rounded-2xl flex items-start gap-2.5 shadow-sm"
               id="login-error"
             >
-              {error}
+              <div className="mt-0.5 bg-rose-200/50 p-1 rounded-full text-rose-600 flex-shrink-0">
+                <ArrowRight size={10} />
+              </div>
+              <p className="leading-relaxed">{error}</p>
             </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" id="login-form-fields">
             {role === 'student' ? (
               /* STUDENT FORM */
-              <div className="space-y-4" id="form-student-fields">
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4" 
+                id="form-student-fields"
+              >
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">ชื่อ - นามสกุลจริง</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">ชื่อ - นามสกุลจริง</label>
+                  <div className="relative group">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#397d54] transition-colors" size={16} />
                     <input
                       type="text"
                       required
                       placeholder="เช่น ณัฐพงษ์ ยอดวิทยา"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-medium"
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-4 focus:ring-[#397d54]/10 transition-all font-medium text-gray-800 placeholder-gray-400 shadow-sm"
                       id="input-login-student-name"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">รหัสนักศึกษา (Student ID)</label>
+                  <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">รหัสนักศึกษา (Student ID)</label>
                   <input
                     type="text"
                     required
@@ -187,114 +212,125 @@ export default function LoginView({ onLogin }: LoginViewProps) {
                     placeholder="ระบุรหัสนักศึกษา เช่น 660510999"
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-bold"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-4 focus:ring-[#397d54]/10 transition-all font-bold text-gray-800 placeholder-gray-400 shadow-sm font-mono tracking-wide"
                     id="input-login-student-id"
                   />
                 </div>
 
                 {isRegister && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">เบอร์โทรศัพท์ติดต่อ</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="เช่น 0812345678"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-mono"
-                      id="input-register-phone"
-                    />
-                  </div>
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 overflow-hidden">
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">เบอร์โทรศัพท์ติดต่อ</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="เช่น 0812345678"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-4 focus:ring-[#397d54]/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
+                        id="input-register-phone"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">ภาควิชา / คณะวิทยาศาสตร์</label>
+                      <select
+                        value={selectedDept}
+                        onChange={(e) => setSelectedDept(e.target.value)}
+                        className="w-full px-3.5 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-4 focus:ring-[#397d54]/10 transition-all text-gray-700 font-medium shadow-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_12px_center] bg-no-repeat pr-10"
+                        id="input-login-student-dept"
+                      >
+                        {DEPARTMENTS.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </motion.div>
                 )}
-
-                {isRegister && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">ภาควิชา / คณะวิทยาศาสตร์</label>
-                    <select
-                      value={selectedDept}
-                      onChange={(e) => setSelectedDept(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition text-gray-700 font-medium"
-                      id="input-login-student-dept"
-                    >
-                      {DEPARTMENTS.map((dept) => (
-                        <option key={dept} value={dept}>
-                          {dept}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+              </motion.div>
             ) : (
               /* STAFF FORM */
-              <div className="space-y-4" id="form-staff-fields">
+              <motion.div 
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4" 
+                id="form-staff-fields"
+              >
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">ชื่อสตาฟฟ์สโมสรฯ</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">ชื่อสตาฟฟ์สโมสรฯ</label>
+                  <div className="relative group">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gray-900 transition-colors" size={16} />
                     <input
                       type="text"
                       required
                       placeholder="เช่น พี่สมโภช สโมฯวิทยา"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-medium"
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-medium text-gray-800 placeholder-gray-400 shadow-sm"
                       id="input-login-staff-name"
                     />
                   </div>
                 </div>
 
                 {isRegister && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">เบอร์โทรศัพท์ติดต่อ</label>
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-1.5 pt-1 overflow-hidden">
+                    <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">เบอร์โทรศัพท์ติดต่อ</label>
                     <input
                       type="tel"
                       required
                       placeholder="เช่น 0812345678"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-mono"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
                       id="input-register-staff-phone"
                     />
-                  </div>
+                  </motion.div>
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 block uppercase tracking-wider">รหัสผ่านสตาฟฟ์ (Staff Access Code)</label>
+                  <div className="flex justify-between items-end ml-1 mb-1">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">รหัสผ่านสตาฟฟ์</label>
+                  </div>
                   <input
                     type="password"
-                    placeholder={isRegister ? "ตั้งรหัสผ่านสำหรับเข้าสู่ระบบ" : "กรอกรหัส หรือเว้นว่าง (รหัสแนะนำ: staff123)"}
+                    placeholder={isRegister ? "ตั้งรหัสผ่านสำหรับเข้าสู่ระบบ" : "กรอกรหัส หรือเว้นว่าง (แนะนำ: staff123)"}
                     value={staffCode}
                     onChange={(e) => setStaffCode(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition font-mono"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
                     id="input-login-staff-pass"
                   />
-                  <span className="text-[10px] text-gray-400 block">*รหัสผ่านสำหรับเปิดแดชบอร์ดจัดการระบบ</span>
                 </div>
-              </div>
+              </motion.div>
             )}
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-[#397d54] hover:bg-[#2c5f3f] text-white text-xs font-extrabold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md cursor-pointer mt-6"
-              id="btn-login-submit"
-            >
-              {isRegister ? 'สมัครสมาชิกและเข้าสู่ระบบ' : 'เข้าสู่ระบบตรวจสอบและจองคิว'}
-              <ArrowRight size={14} />
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                className={`w-full py-3.5 text-white text-xs font-bold rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg hover:shadow-xl cursor-pointer relative overflow-hidden group ${
+                  role === 'student' ? 'bg-[#397d54] hover:bg-[#2c5f3f] shadow-emerald-900/20' : 'bg-gray-900 hover:bg-black shadow-gray-900/20'
+                }`}
+                id="btn-login-submit"
+              >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out rounded-2xl"></div>
+                <span className="relative z-10">{isRegister ? 'สมัครสมาชิกและเข้าสู่ระบบ' : 'เข้าสู่ระบบ'}</span>
+                <ArrowRight size={15} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
             
-            <div className="text-center text-xs text-gray-500 mt-4 pt-2">
+            <div className="text-center text-[11px] text-gray-500 mt-5 pt-3 border-t border-gray-100 flex items-center justify-center gap-1.5">
               {isRegister ? (
                 <>
-                  มีบัญชีอยู่แล้ว?{' '}
-                  <button type="button" onClick={() => setIsRegister(false)} className="text-[#397d54] font-bold hover:underline cursor-pointer">
+                  <span>มีบัญชีอยู่แล้ว?</span>
+                  <button type="button" onClick={() => setIsRegister(false)} className={`font-bold hover:underline cursor-pointer transition-colors ${role === 'student' ? 'text-[#397d54]' : 'text-gray-900'}`}>
                     เข้าสู่ระบบ
                   </button>
                 </>
               ) : (
                 <>
-                  ยังไม่มีบัญชี?{' '}
-                  <button type="button" onClick={() => setIsRegister(true)} className="text-[#397d54] font-bold hover:underline cursor-pointer">
+                  <span>ยังไม่มีบัญชี?</span>
+                  <button type="button" onClick={() => setIsRegister(true)} className={`font-bold hover:underline cursor-pointer transition-colors ${role === 'student' ? 'text-[#397d54]' : 'text-gray-900'}`}>
                     ลงทะเบียนใช้งาน
                   </button>
                 </>
@@ -303,12 +339,12 @@ export default function LoginView({ onLogin }: LoginViewProps) {
           </form>
 
           {/* Quick Sandbox Login Section */}
-          <div className="border-t border-gray-100 pt-5 space-y-3" id="quick-login-section">
+          <div className="border-t border-gray-100 pt-5 mt-2 space-y-4" id="quick-login-section">
             <div className="flex items-center gap-2" id="quick-login-label">
               <span className="h-px bg-gray-200 flex-1"></span>
-              <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest whitespace-nowrap flex items-center gap-1">
+              <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest whitespace-nowrap flex items-center gap-1">
                 <Sparkles size={11} className="text-[#e0ac04]" />
-                ทางลัดสำหรับทดสอบระบบ (Sandbox Bypass)
+                โหมดทดสอบระบบ
               </span>
               <span className="h-px bg-gray-200 flex-1"></span>
             </div>
@@ -317,28 +353,28 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               <button
                 type="button"
                 onClick={() => handleQuickLogin('student')}
-                className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-[#397d54] rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition active:scale-[0.97]"
+                className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 text-[#397d54] rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all active:scale-[0.97]"
                 id="btn-quick-student"
               >
-                <span>กดปุ่มเดียวในฐานะ</span>
-                <span className="text-gray-900">นักศึกษาจำลอง</span>
+                <span className="opacity-70 font-medium">เข้าใช้งานแบบ</span>
+                <span className="text-emerald-900 tracking-wide">นักศึกษาจำลอง</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickLogin('staff')}
-                className="py-2 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-100 text-amber-700 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition active:scale-[0.97]"
+                className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-100/50 text-amber-700 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all active:scale-[0.97]"
                 id="btn-quick-staff"
               >
-                <span>กดปุ่มเดียวในฐานะ</span>
-                <span className="text-gray-900">พี่สตาฟฟ์จำลอง</span>
+                <span className="opacity-70 font-medium">เข้าใช้งานแบบ</span>
+                <span className="text-amber-900 tracking-wide">พี่สตาฟฟ์จำลอง</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Bottom micro copy */}
-        <div className="bg-gray-50 border-t border-gray-100 py-4 px-8 text-center text-[10px] text-gray-400 font-medium" id="login-footer">
+        <div className="bg-gray-50/80 backdrop-blur-sm border-t border-gray-100/80 py-4 px-8 text-center text-[10px] text-gray-400 font-medium relative z-10" id="login-footer">
           สโมสรนักศึกษา คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร © {new Date().getFullYear()}
         </div>
       </motion.div>

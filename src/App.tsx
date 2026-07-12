@@ -7,10 +7,12 @@ import BookingForm from './components/BookingForm';
 import LiveFeed from './components/LiveFeed';
 import AdminPanel from './components/AdminPanel';
 import LoginView from './components/LoginView';
+import LandingView from './components/LandingView';
 import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock } from 'lucide-react';
 
 export default function App() {
   // Main states
+  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
   const [user, setUser] = useState<User | null>(null);
   const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -196,16 +198,24 @@ export default function App() {
     setActiveTab('booking');
   };
 
-  if (!user) {
+  if (viewMode === 'landing') {
+    return <LandingView onNavigateToLogin={() => setViewMode('login')} />;
+  }
+
+  if (viewMode === 'login') {
     return (
       <LoginView
+        onBack={() => setViewMode('landing')}
         onLogin={(usr) => {
           setUser(usr);
+          setViewMode('app');
           pushLog(`เข้าสู่ระบบในฐานะ ${usr.role === 'staff' ? 'สตาฟฟ์สโมสรฯ' : 'นักศึกษา'}: ${usr.name} (${usr.id}) สำเร็จ`, 'system');
         }}
       />
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#e3e3e4] text-gray-800 font-sans selection:bg-[#397d54] selection:text-white" id="main-layout">
@@ -296,6 +306,7 @@ export default function App() {
                   onClick={() => {
                     pushLog(`ผู้ใช้ ${user.name} ลงชื่อออกจากระบบ`, 'system');
                     setUser(null);
+                    setViewMode('landing');
                   }}
                   className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                   title="ออกจากระบบ"
