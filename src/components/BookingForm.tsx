@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Equipment, Booking, User } from '../types';
 import { DEPARTMENTS } from '../data';
 import { ClipboardCheck, QrCode, ArrowLeft, Send, Check, AlertTriangle, RefreshCw, Calendar, Trash2 } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface BookingFormProps {
   equipmentList: Equipment[];
   preselectedItem: Equipment | null;
   onClearPreselected: () => void;
+  onBack: () => void;
   onSubmitBooking: (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => void;
   activeBookings: Booking[];
   onCancelBooking: (bookingId: string) => void;
@@ -18,11 +20,13 @@ export default function BookingForm({
   equipmentList,
   preselectedItem,
   onClearPreselected,
+  onBack,
   onSubmitBooking,
   activeBookings,
   onCancelBooking,
   currentUser,
 }: BookingFormProps) {
+  const { t, language } = useSettings();
   // Form fields state
   const [studentName, setStudentName] = useState(currentUser?.name || '');
   const [studentId, setStudentId] = useState(currentUser?.id || '');
@@ -179,12 +183,12 @@ export default function BookingForm({
 
   const getStatusLabelText = (status: string) => {
     switch (status) {
-      case 'pending': return 'สตาฟฟ์กำลังตรวจสอบ';
-      case 'approved': return 'อนุมัติ/พร้อมรับของ';
-      case 'active': return 'กำลังยืมใช้งาน';
-      case 'returned': return 'คืนอุปกรณ์เรียบร้อย';
-      case 'rejected': return 'ยกเลิก / ไม่อนุมัติ';
-      default: return 'ไม่ทราบสถานะ';
+      case 'pending': return t('สตาฟฟ์กำลังตรวจสอบ', 'Pending Staff Review');
+      case 'approved': return t('อนุมัติ/พร้อมรับของ', 'Approved / Ready to Pick Up');
+      case 'active': return t('กำลังยืมใช้งาน', 'Currently Borrowed');
+      case 'returned': return t('คืนอุปกรณ์เรียบร้อย', 'Equipment Returned');
+      case 'rejected': return t('ยกเลิก / ไม่อนุมัติ', 'Cancelled / Rejected');
+      default: return t('ไม่ทราบสถานะ', 'Unknown Status');
     }
   };
 
@@ -198,29 +202,183 @@ export default function BookingForm({
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
             id="booking-form-grid"
           >
-            {/* The Booking Form (2 cols) */}
-            <div className="lg:col-span-2 bg-white border border-[#e3e3e4] rounded-2xl p-6 shadow-sm space-y-6" id="form-container">
+            {/* LEFT COLUMN: Equipment Details & History */}
+            <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+              
+              {/* Equipment Preview Card */}
+              <div className="bg-white border border-[#e3e3e4] rounded-2xl overflow-hidden shadow-sm">
+                {selectedItem ? (
+                  <>
+                    <div className="h-48 bg-gray-100 relative">
+                      <img src={selectedItem.image} alt={selectedItem.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                      <div className={`absolute top-3 right-3 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold ${selectedItem.availableStock > 0 ? 'bg-white/90 text-[#397d54]' : 'bg-rose-500/90 text-white'}`}>
+                        {selectedItem.availableStock > 0 ? `${t('ว่าง', 'Available')} ${selectedItem.availableStock}` : t('หมด', 'Out of stock')}
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-[#397d54] uppercase tracking-wider">
+                          {selectedItem.category}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-start gap-2">
+                        <h3 className="text-lg font-black text-gray-900 leading-tight">
+                          {language === 'th' ? selectedItem.thaiName : selectedItem.name}
+                        </h3>
+                        <div className="relative">
+                          <select
+                            value={selectedEqId}
+                            onChange={(e) => setSelectedEqId(e.target.value)}
+                            className="appearance-none pl-6 pr-6 py-1 bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold rounded-md focus:outline-none focus:ring-1 focus:ring-[#397d54] cursor-pointer"
+                          >
+                            <option value="" disabled>{t('เปลี่ยนอุปกรณ์', 'Change Equipment')}</option>
+                            {equipmentList.map((eq) => (
+                              <option key={eq.id} value={eq.id} disabled={eq.availableStock <= 0 || eq.status === 'maintenance'}>
+                                {language === 'th' ? eq.thaiName : eq.name}
+                              </option>
+                            ))}
+                          </select>
+                          <RefreshCw size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 line-clamp-3">
+                        {language === 'th' ? selectedItem.thaiDesc : selectedItem.desc}
+                      </p>
+                      
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
+                           <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                           {t('สถานที่เก็บ:', 'Location:')} {selectedItem.location}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-64 flex flex-col items-center justify-center p-6 text-center text-gray-400 bg-gray-50">
+                    <ClipboardCheck size={32} className="mb-3 opacity-20" />
+                    <p className="text-xs font-semibold">{t('กรุณาเลือกอุปกรณ์ทางขวามือ', 'Please select equipment on the right')}</p>
+                  </div>
+                )}
+              </div>
+
+
+            {/* Quick Summary Sidebar of My Bookings */}
+            <div className="space-y-5 " id="my-booking-sidebar">
+              <div className="bg-white border border-[#e3e3e4] rounded-2xl p-5 shadow-sm" id="sidebar-live-bookings">
+                <h3 className="text-sm font-extrabold text-gray-900 border-b border-gray-100 pb-3 mb-3 flex items-center justify-between">
+                  <span>{t('ประวัติคิวจองของคุณ', 'Your Booking History')}</span>
+                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-extrabold">
+                    {activeBookings.length} {t('รายการ', 'items')}
+                  </span>
+                </h3>
+
+                {activeBookings.length > 0 ? (
+                  <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1" id="booking-sidebar-list">
+                    {activeBookings.map((b) => (
+                      <div
+                        key={b.id}
+                        className="p-3.5 rounded-xl border border-[#e3e3e4] bg-gray-50 relative overflow-hidden space-y-2.5 hover:border-gray-400 transition"
+                        id={`sidebar-item-${b.id}`}
+                      >
+                        {/* Decor bar */}
+                        <div
+                          className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                            b.status === 'pending'
+                              ? 'bg-[#e0ac04]'
+                              : b.status === 'approved' || b.status === 'active'
+                              ? 'bg-[#397d54]'
+                              : b.status === 'returned'
+                              ? 'bg-blue-500'
+                              : 'bg-rose-500'
+                          }`}
+                        ></div>
+
+                        <div className="flex justify-between items-start pl-2" id={`sidebar-item-header-${b.id}`}>
+                          <div>
+                            <p className="font-extrabold text-xs text-gray-900">{b.equipmentName}</p>
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase">{t('รหัสคิว:', 'Ticket:')} {b.ticketCode}</p>
+                          </div>
+                          <span
+                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                              b.status === 'pending'
+                                ? 'bg-amber-100 text-[#e0ac04]'
+                                : b.status === 'approved'
+                                ? 'bg-emerald-100 text-[#397d54]'
+                                : b.status === 'active'
+                                ? 'bg-emerald-500 text-white'
+                                : b.status === 'returned'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-rose-100 text-rose-700'
+                            }`}
+                          >
+                            {b.status === 'pending' && t('รออนุมัติ', 'Pending')}
+                            {b.status === 'approved' && t('อนุมัติแล้ว', 'Approved')}
+                            {b.status === 'active' && t('กำลังยืม', 'Active')}
+                            {b.status === 'returned' && t('คืนแล้ว', 'Returned')}
+                            {b.status === 'rejected' && t('ปฏิเสธ', 'Rejected')}
+                          </span>
+                        </div>
+
+                        <div className="pl-2 text-[10px] text-gray-500 grid grid-cols-2 gap-1.5 border-t border-gray-100 pt-2" id={`sidebar-item-body-${b.id}`}>
+                          <div>
+                            <p className="font-bold">{t('ผู้ยืม:', 'Borrower:')} {b.studentName}</p>
+                            <p>{t('รหัส:', 'ID:')} {b.studentId}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold">{t('จำนวน:', 'Qty:')} {b.quantity} {t('ชิ้น', 'items')}</p>
+                            <p className="text-gray-400">{t('เวลาคืน:', 'Return Time:')} {b.returnTime}</p>
+                          </div>
+                        </div>
+
+                        {/* Cancellation Button for Pending and Approved bookings before they are marked active */}
+                        {(b.status === 'pending' || b.status === 'approved') && (
+                          <div className="pl-2 pt-1 flex justify-end" id={`cancel-box-${b.id}`}>
+                            <button
+                              onClick={() => onCancelBooking(b.id)}
+                              className="text-[10px] text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 hover:underline"
+                              id={`btn-cancel-${b.id}`}
+                            >
+                              <Trash2 size={11} />
+                              {t('ยกเลิกคิวนี้', 'Cancel')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10" id="sidebar-empty">
+                    <p className="text-xs text-gray-400 font-medium">{t('ไม่มีรายการจองของคุณในขณะนี้', 'No bookings at this time')}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{t('กรอกฟอร์มด้านขวาเพื่อสร้างใบจองแรก', 'Fill the form to create your first booking')}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+            {/* RIGHT COLUMN: The Booking Form (2 cols) */}
+            <div className="lg:col-span-7 xl:col-span-8 bg-white border border-[#e3e3e4] rounded-2xl p-6 shadow-sm space-y-6" id="form-container">
               <div className="flex justify-between items-center border-b border-gray-100 pb-4" id="form-header">
                 <div>
                   <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
                     <ClipboardCheck className="text-[#397d54]" size={22} />
-                    ใบจองและยืมอุปกรณ์กีฬาออนไลน์
+                    {t('ใบจองและยืมอุปกรณ์กีฬาออนไลน์', 'Online Equipment Booking Form')}
                   </h2>
                   <p className="text-xs text-gray-500 mt-1">
-                    กรอกข้อมูลนักศึกษาเพื่อทำการจองคิวรับของในห้องสโมสรวิทยาศาสตร์ฯ
+                    {t('กรอกข้อมูลนักศึกษาเพื่อทำการจองคิวรับของในห้องสโมสรวิทยาศาสตร์ฯ', 'Fill in your student information to reserve equipment at the Science Club.')}
                   </p>
                 </div>
                 <button
-                  onClick={onClearPreselected}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition"
-                  id="back-to-all-eq"
-                >
-                  <ArrowLeft size={13} />
-                  ดูรายการทั้งหมด
-                </button>
+                    onClick={onBack}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition"
+                    id="back-to-all-eq"
+                  >
+                    <ArrowLeft size={13} />
+                    {t('ย้อนกลับ', 'Back')}
+                  </button>
               </div>
 
               {formError && (
@@ -234,10 +392,10 @@ export default function BookingForm({
                 {/* Name & ID Inputs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4" id="user-details-row">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block">ชื่อ-นามสกุล ผู้ยืม {currentUser ? '(เข้าสู่ระบบแล้ว)' : ''}</label>
+                    <label className="text-xs font-bold text-gray-700 block">{t('ชื่อ-นามสกุล ผู้ยืม', 'Full Name')} {currentUser ? t('(เข้าสู่ระบบแล้ว)', '(Logged In)') : ''}</label>
                     <input
                       type="text"
-                      placeholder="เช่น นายรักเรียน มั่นคง"
+                      placeholder={t('เช่น นายรักเรียน มั่นคง', 'e.g. Somchai Jaidee')}
                       value={studentName}
                       disabled={!!currentUser}
                       onChange={(e) => setStudentName(e.target.value)}
@@ -248,10 +406,10 @@ export default function BookingForm({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block">รหัสนักศึกษา (Student ID)</label>
+                    <label className="text-xs font-bold text-gray-700 block">{t('รหัสนักศึกษา (Student ID)', 'Student ID')}</label>
                     <input
                       type="text"
-                      placeholder="เช่น 660510123"
+                      placeholder={t('เช่น 660510123', 'e.g. 660510123')}
                       value={studentId}
                       disabled={!!currentUser}
                       onChange={(e) => setStudentId(e.target.value)}
@@ -265,7 +423,7 @@ export default function BookingForm({
 
                 {/* Department Selection */}
                 <div className="space-y-1.5" id="dept-select-row">
-                  <label className="text-xs font-bold text-gray-700 block">ภาควิชา / คณะวิทยาศาสตร์</label>
+                  <label className="text-xs font-bold text-gray-700 block">{t('ภาควิชา / คณะวิทยาศาสตร์', 'Department / Faculty of Science')}</label>
                   <select
                     value={selectedDept}
                     disabled={!!currentUser}
@@ -283,33 +441,10 @@ export default function BookingForm({
                   </select>
                 </div>
 
-                {/* Equipment Picker & Quantity */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="eq-picker-row">
-                  {/* Select Equipment */}
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block">เลือกอุปกรณ์กีฬา</label>
-                    <select
-                      value={selectedEqId}
-                      onChange={(e) => setSelectedEqId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-xs focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition text-gray-700 font-medium"
-                      id="input-eq-select"
-                    >
-                      <option value="">-- กรุณาเลือกอุปกรณ์ --</option>
-                      {equipmentList.map((eq) => (
-                        <option
-                          key={eq.id}
-                          value={eq.id}
-                          disabled={eq.availableStock <= 0 || eq.status === 'maintenance'}
-                        >
-                          {eq.thaiName} ({eq.name}) — ว่าง {eq.availableStock} ชิ้น
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Quantity Input */}
+                                {/* Quantity Input */}
+                <div className="space-y-1.5" id="eq-picker-row">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block">จำนวนที่ต้องการยืม</label>
+                    <label className="text-xs font-bold text-gray-700 block">{t('จำนวนที่ต้องการยืม', 'Quantity')}</label>
                     <div className="flex items-center" id="qty-input-controls">
                       <button
                         type="button"
@@ -348,13 +483,13 @@ export default function BookingForm({
                   <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center gap-3">
                     <Calendar className="text-[#397d54] flex-shrink-0" size={18} />
                     <div>
-                      <p className="text-[11px] font-bold text-gray-500 uppercase">เวลายืมเริ่มต้น</p>
-                      <p className="text-xs font-bold text-gray-800">ทันทีที่ได้รับอนุมัติใบจองจากสตาฟฟ์</p>
+                      <p className="text-[11px] font-bold text-gray-500 uppercase">{t('เวลายืมเริ่มต้น', 'Start Time')}</p>
+                      <p className="text-xs font-bold text-gray-800">{t('ทันทีที่ได้รับอนุมัติใบจองจากสตาฟฟ์', 'As soon as approved by staff')}</p>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 block">เวลาคืนอุปกรณ์ (วันนี้)</label>
+                    <label className="text-xs font-bold text-gray-700 block">{t('เวลาคืนอุปกรณ์ (วันนี้)', 'Return Time (Today)')}</label>
                     <input
                       type="time"
                       value={returnTime}
@@ -363,7 +498,7 @@ export default function BookingForm({
                       id="input-return-time"
                     />
                     <span className="text-[10px] text-gray-500 font-medium block">
-                      *กรุณาคืนภายในวันเดียวกัน ก่อนเวลาปิดทำการห้องสโมสรฯ (18:00 น.)
+                      {t('*กรุณาคืนภายในวันเดียวกัน ก่อนเวลาปิดทำการห้องสโมสรฯ (18:00 น.)', '*Please return within the same day before the club closes (18:00)')}
                     </span>
                   </div>
                 </div>
@@ -372,7 +507,7 @@ export default function BookingForm({
                 {selectedItem && selectedItem.availableStock > 0 && selectedItem.availableStock <= 2 && (
                   <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-[11px] text-amber-800 font-semibold flex items-center gap-2">
                     <AlertTriangle size={14} className="text-[#e0ac04]" />
-                    <span>แจ้งเตือน: อุปกรณ์ชิ้นนี้ใกล้หมดคลังแล้ว แนะนำให้รีบจองและไปรับที่สโมสรทันที!</span>
+                    <span>{t('แจ้งเตือน: อุปกรณ์ชิ้นนี้ใกล้หมดคลังแล้ว แนะนำให้รีบจองและไปรับที่สโมสรทันที!', 'Warning: This equipment is almost out of stock. Recommend booking and picking up immediately!')}</span>
                   </div>
                 )}
 
@@ -384,105 +519,13 @@ export default function BookingForm({
                     id="btn-submit-booking"
                   >
                     <Send size={14} />
-                    ยืนยันคำขอจองอุปกรณ์ออนไลน์
+                    {t('ยืนยันคำขอจองอุปกรณ์ออนไลน์', 'Confirm Online Equipment Booking')}
                   </button>
                 </div>
               </form>
             </div>
 
-            {/* Quick Summary Sidebar of My Bookings */}
-            <div className="space-y-5 lg:col-span-1" id="my-booking-sidebar">
-              <div className="bg-white border border-[#e3e3e4] rounded-2xl p-5 shadow-sm" id="sidebar-live-bookings">
-                <h3 className="text-sm font-extrabold text-gray-900 border-b border-gray-100 pb-3 mb-3 flex items-center justify-between">
-                  <span>ประวัติคิวจองของคุณ</span>
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-extrabold">
-                    {activeBookings.length} รายการ
-                  </span>
-                </h3>
-
-                {activeBookings.length > 0 ? (
-                  <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1" id="booking-sidebar-list">
-                    {activeBookings.map((b) => (
-                      <div
-                        key={b.id}
-                        className="p-3.5 rounded-xl border border-[#e3e3e4] bg-gray-50 relative overflow-hidden space-y-2.5 hover:border-gray-400 transition"
-                        id={`sidebar-item-${b.id}`}
-                      >
-                        {/* Decor bar */}
-                        <div
-                          className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                            b.status === 'pending'
-                              ? 'bg-[#e0ac04]'
-                              : b.status === 'approved' || b.status === 'active'
-                              ? 'bg-[#397d54]'
-                              : b.status === 'returned'
-                              ? 'bg-blue-500'
-                              : 'bg-rose-500'
-                          }`}
-                        ></div>
-
-                        <div className="flex justify-between items-start pl-2" id={`sidebar-item-header-${b.id}`}>
-                          <div>
-                            <p className="font-extrabold text-xs text-gray-900">{b.equipmentName}</p>
-                            <p className="text-[10px] text-gray-400 font-semibold uppercase">รหัสคิว: {b.ticketCode}</p>
-                          </div>
-                          <span
-                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                              b.status === 'pending'
-                                ? 'bg-amber-100 text-[#e0ac04]'
-                                : b.status === 'approved'
-                                ? 'bg-emerald-100 text-[#397d54]'
-                                : b.status === 'active'
-                                ? 'bg-emerald-500 text-white'
-                                : b.status === 'returned'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-rose-100 text-rose-700'
-                            }`}
-                          >
-                            {b.status === 'pending' && 'รออนุมัติ'}
-                            {b.status === 'approved' && 'อนุมัติแล้ว'}
-                            {b.status === 'active' && 'กำลังยืม'}
-                            {b.status === 'returned' && 'คืนแล้ว'}
-                            {b.status === 'rejected' && 'ปฏิเสธ'}
-                          </span>
-                        </div>
-
-                        <div className="pl-2 text-[10px] text-gray-500 grid grid-cols-2 gap-1.5 border-t border-gray-100 pt-2" id={`sidebar-item-body-${b.id}`}>
-                          <div>
-                            <p className="font-bold">ผู้ยืม: {b.studentName}</p>
-                            <p>รหัส: {b.studentId}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold">จำนวน: {b.quantity} ชิ้น</p>
-                            <p className="text-gray-400">เวลาคืน: {b.returnTime}</p>
-                          </div>
-                        </div>
-
-                        {/* Cancellation Button for Pending and Approved bookings before they are marked active */}
-                        {(b.status === 'pending' || b.status === 'approved') && (
-                          <div className="pl-2 pt-1 flex justify-end" id={`cancel-box-${b.id}`}>
-                            <button
-                              onClick={() => onCancelBooking(b.id)}
-                              className="text-[10px] text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 hover:underline"
-                              id={`btn-cancel-${b.id}`}
-                            >
-                              <Trash2 size={11} />
-                              ยกเลิกคิวนี้
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10" id="sidebar-empty">
-                    <p className="text-xs text-gray-400 font-medium">ไม่มีรายการจองของคุณในขณะนี้</p>
-                    <p className="text-[10px] text-gray-400 mt-1">กรอกฟอร์มด้านซ้ายเพื่อสร้างใบจองแรก</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
+</motion.div>
         ) : (
           /* SECTION B: DIGITAL TICKET CONFIRMATION */
           <motion.div
@@ -501,8 +544,8 @@ export default function BookingForm({
               <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-2 border border-white/20">
                 <Check className="text-[#e0ac04]" size={24} />
               </div>
-              <h3 className="font-extrabold text-lg">สโมสรนักศึกษา คณะวิทยาศาสตร์</h3>
-              <p className="text-xs text-emerald-100 font-light">ระบบจองกีฬาและติดตามสถานะเรียลไทม์</p>
+              <h3 className="font-extrabold text-lg">{t('สโมสรนักศึกษา คณะวิทยาศาสตร์', 'Science Student Club')}</h3>
+              <p className="text-xs text-emerald-100 font-light">{t('ระบบจองกีฬาและติดตามสถานะเรียลไทม์', 'Sports Booking & Real-time Tracking System')}</p>
             </div>
 
             {/* Ticket Content Body */}
@@ -518,7 +561,7 @@ export default function BookingForm({
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getStatusStepClass(latestTicket.status, 'pending')}`}>
                       1
                     </div>
-                    <span className="text-[9px] text-gray-500 font-bold">รอคิว</span>
+                    <span className="text-[9px] text-gray-500 font-bold">{t('รอคิว', 'Pending')}</span>
                   </div>
 
                   {/* Step 2: Approved */}
@@ -526,7 +569,7 @@ export default function BookingForm({
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getStatusStepClass(latestTicket.status, 'approved')}`}>
                       2
                     </div>
-                    <span className="text-[9px] text-gray-500 font-bold">อนุมัติ</span>
+                    <span className="text-[9px] text-gray-500 font-bold">{t('อนุมัติ', 'Approved')}</span>
                   </div>
 
                   {/* Step 3: Active */}
@@ -534,7 +577,7 @@ export default function BookingForm({
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getStatusStepClass(latestTicket.status, 'active')}`}>
                       3
                     </div>
-                    <span className="text-[9px] text-gray-500 font-bold">กำลังใช้</span>
+                    <span className="text-[9px] text-gray-500 font-bold">{t('กำลังใช้', 'Active')}</span>
                   </div>
 
                   {/* Step 4: Returned */}
@@ -542,13 +585,13 @@ export default function BookingForm({
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getStatusStepClass(latestTicket.status, 'returned')}`}>
                       4
                     </div>
-                    <span className="text-[9px] text-gray-500 font-bold">ส่งคืนแล้ว</span>
+                    <span className="text-[9px] text-gray-500 font-bold">{t('ส่งคืนแล้ว', 'Returned')}</span>
                   </div>
                 </div>
 
                 {/* Status Bar */}
                 <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center" id="ticket-status-bar">
-                  <span className="text-xs text-gray-500 font-medium">สถานะตั๋ว:</span>
+                  <span className="text-xs text-gray-500 font-medium">{t('สถานะตั๋ว:', 'Ticket Status:')}</span>
                   <span className="text-xs font-extrabold text-[#397d54] uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#e0ac04] inline-block"></span>
                     {getStatusLabelText(latestTicket.status)}
@@ -558,27 +601,27 @@ export default function BookingForm({
                 {/* Borrow Information Grid */}
                 <div className="space-y-2.5 text-xs border-y border-[#e3e3e4] py-4" id="ticket-info-grid">
                   <div className="flex justify-between" id="ticket-info-code">
-                    <span className="text-gray-400 font-medium">รหัสการจอง:</span>
+                    <span className="text-gray-400 font-medium">{t('รหัสการจอง:', 'Booking Code:')}</span>
                     <span className="font-extrabold text-gray-900 uppercase tracking-widest">{latestTicket.ticketCode}</span>
                   </div>
                   <div className="flex justify-between" id="ticket-info-eq">
-                    <span className="text-gray-400 font-medium">อุปกรณ์กีฬา:</span>
+                    <span className="text-gray-400 font-medium">{t('อุปกรณ์กีฬา:', 'Equipment:')}</span>
                     <span className="font-extrabold text-[#397d54] text-right">{latestTicket.equipmentName}</span>
                   </div>
                   <div className="flex justify-between" id="ticket-info-qty">
-                    <span className="text-gray-400 font-medium">จำนวนที่ขอยืม:</span>
-                    <span className="font-extrabold text-gray-900">{latestTicket.quantity} ชิ้น</span>
+                    <span className="text-gray-400 font-medium">{t('จำนวนที่ขอยืม:', 'Quantity:')}</span>
+                    <span className="font-extrabold text-gray-900">{latestTicket.quantity} {t('ชิ้น', 'items')}</span>
                   </div>
                   <div className="flex justify-between" id="ticket-info-name">
-                    <span className="text-gray-400 font-medium">ชื่อผู้ยืม:</span>
+                    <span className="text-gray-400 font-medium">{t('ชื่อผู้ยืม:', 'Borrower Name:')}</span>
                     <span className="font-bold text-gray-800">{latestTicket.studentName} ({latestTicket.studentId})</span>
                   </div>
                   <div className="flex justify-between" id="ticket-info-dept">
-                    <span className="text-gray-400 font-medium">ภาควิชา:</span>
+                    <span className="text-gray-400 font-medium">{t('ภาควิชา:', 'Department:')}</span>
                     <span className="font-semibold text-gray-600 truncate max-w-[200px] text-right">{latestTicket.department}</span>
                   </div>
                   <div className="flex justify-between" id="ticket-info-schedule">
-                    <span className="text-gray-400 font-medium">ช่วงเวลายืม-คืน:</span>
+                    <span className="text-gray-400 font-medium">{t('ช่วงเวลายืม-คืน:', 'Borrowing Period:')}</span>
                     <span className="font-bold text-[#e0ac04]">{latestTicket.borrowTime} - {latestTicket.returnTime}</span>
                   </div>
                 </div>
@@ -588,8 +631,8 @@ export default function BookingForm({
                   <QrCode size={48} className="text-gray-800" />
                   <p className="text-[9px] text-gray-400 font-mono">SCISPORT-BOOKING-{latestTicket.id.toUpperCase()}</p>
                   <p className="text-[10px] text-[#397d54] font-bold text-center leading-normal">
-                    *กรุณาแสดงหน้าจอหน้านี้ให้กับสตาฟฟ์ห้องสโมฯ
-                    <br />เพื่อรับอุปกรณ์ในเวลาที่จองไว้
+                    {t('*กรุณาแสดงหน้าจอหน้านี้ให้กับสตาฟฟ์ห้องสโมฯ', '*Please show this screen to the club staff')}
+                    <br />{t('เพื่อรับอุปกรณ์ในเวลาที่จองไว้', 'to receive the reserved equipment')}
                   </p>
                 </div>
 
@@ -601,7 +644,7 @@ export default function BookingForm({
                     id="btn-new-booking"
                   >
                     <RefreshCw size={12} />
-                    จองเพิ่มอีกรายการ
+                    {t('จองเพิ่มอีกรายการ', 'Book Another Item')}
                   </button>
                 </div>
               </div>

@@ -260,23 +260,7 @@ export default function App() {
                   {t('ตรวจสอบอุปกรณ์', 'Equipment')}
                 </button>
                 
-                <button
-                  onClick={() => setActiveTab('booking')}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 relative ${
-                    activeTab === 'booking'
-                      ? 'bg-[#397d54] text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  id="btn-nav-booking"
-                >
-                  <ClipboardList size={14} />
-                  {t('จองออนไลน์', 'Book Online')}
-                  {bookings.filter(b => b.status === 'pending').length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#e0ac04] text-gray-900 text-[9px] font-black rounded-full flex items-center justify-center animate-bounce">
-                      {bookings.filter(b => b.status === 'pending').length}
-                    </span>
-                  )}
-                </button>
+                
 
                 {user.role === 'staff' && (
                   <button
@@ -342,7 +326,7 @@ export default function App() {
       {/* Main Container Stage */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" id="stage">
         {/* Announcements Banner */}
-        {activeTab !== 'admin' && (
+        {activeTab === 'catalog' && (
           <HeroBanner />
         )}
 
@@ -401,6 +385,7 @@ export default function App() {
                   equipmentList={equipment}
                   preselectedItem={preselectedEq}
                   onClearPreselected={() => setPreselectedEq(null)}
+                  onBack={() => { setPreselectedEq(null); setActiveTab('catalog'); }}
                   onSubmitBooking={handleSubmitBooking}
                   activeBookings={bookings}
                   onCancelBooking={handleCancelBooking}
