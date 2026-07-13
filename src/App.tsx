@@ -10,11 +10,12 @@ import LoginView from './components/LoginView';
 import LandingView from './components/LandingView';
 import SettingsModal from './components/SettingsModal';
 import StudentProfile from './components/StudentProfile';
+import HeroBanner from './components/HeroBanner';
 import { useSettings } from './contexts/SettingsContext';
-import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings } from 'lucide-react';
+import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio } from 'lucide-react';
 
 export default function App() {
-  const { setIsSettingsOpen, playPop } = useSettings();
+  const { t, setIsSettingsOpen, playPop } = useSettings();
   
   // Main states
   const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
@@ -24,6 +25,7 @@ export default function App() {
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Helper to push a new activity log
   const pushLog = (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
@@ -255,7 +257,7 @@ export default function App() {
                   id="btn-nav-catalog"
                 >
                   <Compass size={14} />
-                  ตรวจสอบอุปกรณ์
+                  {t('ตรวจสอบอุปกรณ์', 'Equipment')}
                 </button>
                 
                 <button
@@ -268,7 +270,7 @@ export default function App() {
                   id="btn-nav-booking"
                 >
                   <ClipboardList size={14} />
-                  จองออนไลน์
+                  {t('จองออนไลน์', 'Book Online')}
                   {bookings.filter(b => b.status === 'pending').length > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#e0ac04] text-gray-900 text-[9px] font-black rounded-full flex items-center justify-center animate-bounce">
                       {bookings.filter(b => b.status === 'pending').length}
@@ -276,18 +278,20 @@ export default function App() {
                   )}
                 </button>
 
-                <button
-                  onClick={() => setActiveTab('admin')}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                    activeTab === 'admin'
-                      ? 'bg-gray-900 text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  id="btn-nav-admin"
-                >
-                  <Shield size={14} className="text-[#e0ac04]" />
-                  สตาฟฟ์สโมฯ
-                </button>
+                {user.role === 'staff' && (
+                  <button
+                    onClick={() => setActiveTab('admin')}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                      activeTab === 'admin'
+                        ? 'bg-gray-900 text-white shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                    id="btn-nav-admin"
+                  >
+                    <Shield size={14} className="text-[#e0ac04]" />
+                    {t('สตาฟฟ์สโมฯ', 'Staff')}
+                  </button>
+                )}
               </nav>
 
               <button
@@ -296,7 +300,7 @@ export default function App() {
                   setIsSettingsOpen(true);
                 }}
                 className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
-                title="ตั้งค่าระบบ"
+                title={t('ตั้งค่าระบบ', 'Settings')}
               >
                 <Settings size={18} />
               </button>
@@ -310,7 +314,7 @@ export default function App() {
                 <div className="flex flex-col text-right hidden lg:block" id="user-text-info">
                   <p className="font-extrabold text-emerald-950 leading-tight text-[11px]">{user.name}</p>
                   <p className="text-[9px] text-[#397d54] font-bold tracking-wider">
-                    {user.role === 'staff' ? 'พี่สตาฟฟ์สโมสรฯ' : `นักศึกษา ID: ${user.id}`}
+                    {user.role === 'staff' ? t('พี่สตาฟฟ์สโมสรฯ', 'Club Staff') : `${t('นักศึกษา ID:', 'Student ID:')} ${user.id}`}
                   </p>
                 </div>
                 <div className="w-8 h-8 bg-[#397d54] text-white rounded-lg flex items-center justify-center font-black text-xs border border-emerald-300 shadow-sm" id="user-avatar" title={user.name}>
@@ -324,7 +328,7 @@ export default function App() {
                     setViewMode('landing');
                   }}
                   className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition ml-1"
-                  title="ออกจากระบบ"
+                  title={t('ออกจากระบบ', 'Logout')}
                   id="btn-logout"
                 >
                   <LogOut size={14} />
@@ -337,10 +341,15 @@ export default function App() {
 
       {/* Main Container Stage */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" id="stage">
-        {/* Top Live Analytics Feed (Only for staff on Admin tab) */}
-        {user.role === 'staff' && activeTab === 'admin' ? (
-          <LiveFeed logs={logs} equipment={equipment} bookings={bookings} />
-        ) : null}
+        {/* Announcements Banner */}
+        {activeTab !== 'admin' && (
+          <HeroBanner />
+        )}
+
+        {/* Top Live Analytics Feed (Staff Only) */}
+        {user.role === 'staff' && activeTab === 'admin' && (
+          <LiveFeed logs={logs} equipment={equipment} bookings={bookings} userRole={user.role} />
+        )}
 
         {/* Modular Content Transitions */}
         <div className="min-h-[450px]" id="modular-content-panel">
@@ -391,10 +400,7 @@ export default function App() {
                 <BookingForm
                   equipmentList={equipment}
                   preselectedItem={preselectedEq}
-                  onClearPreselected={() => {
-                    setPreselectedEq(null);
-                    setActiveTab('catalog');
-                  }}
+                  onClearPreselected={() => setPreselectedEq(null)}
                   onSubmitBooking={handleSubmitBooking}
                   activeBookings={bookings}
                   onCancelBooking={handleCancelBooking}
@@ -496,6 +502,62 @@ export default function App() {
         </div>
       </footer>
       <SettingsModal />
+
+      {/* Floating Contact Support */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <AnimatePresence>
+          {isHelpOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-16 right-0 w-[280px] bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden"
+            >
+              <div className="bg-[#397d54] p-4 text-white flex justify-between items-center">
+                <div>
+                  <h4 className="font-bold text-sm">{t('ต้องการความช่วยเหลือ?', 'Need Help?')}</h4>
+                  <p className="text-[10px] text-emerald-100 mt-0.5">{t('ติดต่อสตาฟฟ์สโมสรนักศึกษา', 'Contact Student Club Staff')}</p>
+                </div>
+                <button onClick={() => setIsHelpOpen(false)} className="p-1 hover:bg-white/20 rounded-full transition">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                       <Bell size={18} />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-gray-800">Facebook Page</p>
+                       <p className="text-[10px] text-gray-500">สโมสรนักศึกษา คณะวิทย์ฯ</p>
+                    </div>
+                 </a>
+                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-green-100">
+                    <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                       <Radio size={18} />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-gray-800">Line Official</p>
+                       <p className="text-[10px] text-gray-500">@scisports_pnru</p>
+                    </div>
+                 </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <button
+          onClick={() => {
+            playPop();
+            setIsHelpOpen(!isHelpOpen);
+          }}
+          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isHelpOpen ? 'bg-gray-800 text-white rotate-90 scale-90' : 'bg-[#e0ac04] hover:bg-[#c99a03] text-gray-900 hover:scale-105'}`}
+        >
+          {isHelpOpen ? <X size={24} /> : <MessageCircle size={24} />}
+        </button>
+      </div>
+
     </div>
   );
 }

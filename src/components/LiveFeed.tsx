@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActivityLog, Equipment, Booking } from '../types';
 import { Radio, Bell, ArrowUpRight, ShieldAlert, CheckCircle, RefreshCcw } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface LiveFeedProps {
   logs: ActivityLog[];
   equipment: Equipment[];
   bookings: Booking[];
+  userRole?: 'student' | 'staff';
 }
 
-export default function LiveFeed({ logs, equipment, bookings }: LiveFeedProps) {
+export default function LiveFeed({ logs, equipment, bookings, userRole = 'staff' }: LiveFeedProps) {
   const [currentTime, setCurrentTime] = useState<string>('');
+  const { t } = useSettings();
 
   // Live timer tick
   useEffect(() => {
@@ -90,16 +93,16 @@ export default function LiveFeed({ logs, equipment, bookings }: LiveFeedProps) {
         </div>
       </div>
 
-      {/* KPI Box 2: Inventory Utilization details (Light theme) */}
+      {/* KPI Box 2: Inventory Utilization */}
       <div className="bg-white border border-[#e3e3e4] p-5 rounded-2xl shadow-sm flex flex-col justify-between min-h-[170px]" id="kpi-utilization">
         <div id="kpi-util-header">
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Inventory Metrics</p>
-          <h3 className="font-extrabold text-sm text-gray-800 mt-0.5">อัตราการใช้งานอุปกรณ์กีฬา</h3>
+          <h3 className="font-extrabold text-sm text-gray-800 mt-0.5">{t('อัตราการใช้งานอุปกรณ์กีฬา', 'Equipment Utilization Rate')}</h3>
         </div>
 
         <div className="space-y-3" id="kpi-util-content">
           <div className="flex justify-between items-end" id="util-label-row">
-            <span className="text-xs text-gray-500 font-bold">ถูกยืมกระจายตัวอยู่กลางแจ้ง</span>
+            <span className="text-xs text-gray-500 font-bold">{t('ถูกยืมกระจายตัวอยู่กลางแจ้ง', 'Currently borrowed out')}</span>
             <span className="text-sm font-extrabold text-[#397d54]">{utilizationPercentage}%</span>
           </div>
           
@@ -113,20 +116,20 @@ export default function LiveFeed({ logs, equipment, bookings }: LiveFeedProps) {
           </div>
 
           <div className="flex justify-between text-[10px] text-gray-400 font-semibold" id="util-counts">
-            <span>สต็อกว่างในสโมฯ: {totalAvailableCount} ชิ้น</span>
-            <span>ทั้งหมดที่มี: {totalEquipmentCount} ชิ้น</span>
+            <span>{t('สต็อกว่างในสโมฯ:', 'Available:')} {totalAvailableCount} {t('ชิ้น', 'items')}</span>
+            <span>{t('ทั้งหมดที่มี:', 'Total:')} {totalEquipmentCount} {t('ชิ้น', 'items')}</span>
           </div>
         </div>
       </div>
 
-      {/* KPI Box 3: Scrolling Live logs (Sport Activity Log) */}
+      {/* KPI Box 3: Scrolling Live logs */}
       <div className="bg-white border border-[#e3e3e4] p-5 rounded-2xl shadow-sm flex flex-col justify-between min-h-[170px]" id="kpi-scrolling-logs">
         <div className="flex justify-between items-center mb-3" id="kpi-logs-header">
           <div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Real-time Stream</p>
             <h3 className="font-extrabold text-sm text-gray-800 mt-0.5 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#e0ac04] inline-block animate-pulse"></span>
-              ประวัติความเคลื่อนไหวล่าสุด
+              {t('ประวัติความเคลื่อนไหวล่าสุด', 'Recent Live Activity')}
             </h3>
           </div>
           <RefreshCcw size={12} className="text-gray-400 cursor-pointer hover:rotate-180 transition duration-300" title="Auto-updating in real-time" />
@@ -152,7 +155,7 @@ export default function LiveFeed({ logs, equipment, bookings }: LiveFeedProps) {
                     {log.message}
                   </p>
                   <span className="text-[9px] text-gray-400 font-mono block">
-                    เมื่อ {log.timestamp}
+                    {t('เมื่อ', 'At')} {log.timestamp}
                   </span>
                 </div>
               </motion.div>
