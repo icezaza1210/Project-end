@@ -18,8 +18,6 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
     { id: 'all', name: 'ทั้งหมด' },
     { id: 'ball', name: 'ลูกบอล' },
     { id: 'racket', name: 'ไม้ตี' },
-    { id: 'net', name: 'ตาข่าย' },
-    { id: 'field', name: 'ภาคสนาม' },
     { id: 'other', name: 'อื่นๆ' }
   ];
 
