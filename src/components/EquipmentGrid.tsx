@@ -74,19 +74,151 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
     }
   };
 
-  // Simplified icon rendering (we can use emoji or lucide)
+  // Custom-tailored high quality sport vector SVGs to replace generic or mismatched icons
   const renderSportIcon = (iconName: string, category: string) => {
-    const IconComponent = (LucideIcons as any)[iconName] || Box;
-    
-    // Try to map some categories to colored circular backgrounds for the image look
     let bgColor = "bg-orange-100 text-orange-600";
-    if (category === 'racket') bgColor = "bg-purple-100 text-purple-600";
-    else if (category === 'indoor') bgColor = "bg-blue-100 text-blue-600";
-    else if (category === 'outdoor') bgColor = "bg-gray-100 text-gray-600";
-    
+    let svgContent = null;
+
+    switch (iconName) {
+      case 'Dribbble': // Basketball
+        bgColor = "bg-amber-100 text-amber-700 animate-pulse-slow";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M6.2 6.2c2.4 2.4 2.4 6.2 0 8.5" />
+            <path d="M17.8 6.2c-2.4 2.4-2.4 6.2 0 8.5" />
+            <path d="M2 12h20" />
+            <path d="M12 2v20" />
+          </svg>
+        );
+        break;
+
+      case 'Activity': // Football/Soccer
+        bgColor = "bg-emerald-100 text-[#397d54]";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polygon points="12,7.5 15.5,10 14,14 10,14 8.5,10" fill="currentColor" fillOpacity="0.2" />
+            <path d="M12 2v5.5M12 14v8M3.8 7.5l4.7 2.5M20.2 7.5l-4.7 2.5M14 14l3.5 3.5M10 14L6.5 17.5" />
+          </svg>
+        );
+        break;
+
+      case 'Sword': // Badminton Racket
+        bgColor = "bg-indigo-100 text-indigo-700";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Racket Head */}
+            <ellipse cx="8" cy="8" rx="5" ry="5" />
+            <path d="M8 3v10M3 8h10" strokeWidth="1" opacity="0.4" />
+            {/* Shaft & Handle */}
+            <path d="M11.5 11.5l6 6" />
+            <path d="M17.5 17.5l3.5 3.5" strokeWidth="3" />
+            {/* Shuttlecock */}
+            <path d="M15 11 L16 7 L20 7 L21 11 Z" fill="currentColor" fillOpacity="0.25" />
+            <path d="M15 11 C16.5 12.5, 19.5 12.5, 21 11" />
+          </svg>
+        );
+        break;
+
+      case 'Tablets': // Ping Pong / Table Tennis
+        bgColor = "bg-rose-100 text-rose-600";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Paddle Face */}
+            <circle cx="9" cy="9" r="6" fill="currentColor" fillOpacity="0.2" />
+            {/* Handle */}
+            <path d="M13.2 13.2l4.8 4.8" strokeWidth="3.5" />
+            {/* Ball */}
+            <circle cx="17" cy="8" r="2.5" fill="currentColor" />
+          </svg>
+        );
+        break;
+
+      case 'Disc': // Volleyball
+        bgColor = "bg-sky-100 text-sky-700";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a10 10 0 0 0 0 20" />
+            <path d="M2 12a10 10 0 0 0 20 0" />
+            <path d="M6.2 6.2c3 1 3 4 0 5.6" />
+            <path d="M17.8 6.2c-3 1-3 4 0 5.6" />
+            <path d="M6.2 17.8c3-1 3-4 0-5.6" />
+            <path d="M17.8 17.8c-3-1-3-4 0-5.6" />
+          </svg>
+        );
+        break;
+
+      case 'Compass': // Futsal ball
+        bgColor = "bg-teal-100 text-teal-700";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2v20 M2 12h20 M4.9 4.9l14.2 14.2 M4.9 19.1L19.1 4.9" strokeWidth="1.5" opacity="0.5" />
+            <circle cx="12" cy="12" r="4" fill="currentColor" fillOpacity="0.15" />
+          </svg>
+        );
+        break;
+
+      case 'Target': // Petanque Set
+        bgColor = "bg-slate-100 text-slate-600";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Boules */}
+            <circle cx="8" cy="14" r="6" fill="currentColor" fillOpacity="0.15" />
+            <path d="M4.5 11c1.5 1.5 3.5 1.5 5 0M4 14c2 2 4 2 6 0" strokeWidth="1" opacity="0.8" />
+            
+            <circle cx="17" cy="10" r="5" fill="currentColor" fillOpacity="0.05" />
+            <path d="M13.5 8c1.5 1.5 3 1.5 4.5 0" strokeWidth="1" opacity="0.8" />
+
+            {/* Target Jack Ball */}
+            <circle cx="15" cy="17" r="2.2" fill="currentColor" />
+          </svg>
+        );
+        break;
+
+      case 'Grid': // Chess Board / Indoor board games
+        bgColor = "bg-[#fcf8f2] text-amber-900 border border-amber-100";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+            <rect x="3" y="3" width="6" height="6" fill="currentColor" fillOpacity="0.3" />
+            <rect x="15" y="3" width="6" height="6" fill="currentColor" fillOpacity="0.3" />
+            <rect x="9" y="9" width="6" height="6" fill="currentColor" fillOpacity="0.3" />
+            <rect x="3" y="15" width="6" height="6" fill="currentColor" fillOpacity="0.3" />
+            <rect x="15" y="15" width="6" height="6" fill="currentColor" fillOpacity="0.3" />
+          </svg>
+        );
+        break;
+
+      case 'LifeBuoy': // Handball
+        bgColor = "bg-orange-100 text-orange-700";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2c3.5 4 3.5 8 0 10" />
+            <path d="M12 12c-3.5 4-3.5 8 0 10" />
+            <path d="M2 12c4 3.5 8 3.5 10 0" />
+            <path d="M12 12c4-3.5 8-3.5 10 0" />
+          </svg>
+        );
+        break;
+
+      default:
+        // Fallback to standard Lucide Box if anything else is defined
+        const IconComponent = (LucideIcons as any)[iconName] || Box;
+        if (category === 'racket') bgColor = "bg-purple-100 text-purple-600";
+        else if (category === 'indoor') bgColor = "bg-blue-100 text-blue-600";
+        else if (category === 'outdoor') bgColor = "bg-gray-100 text-gray-600";
+        svgContent = <IconComponent size={20} />;
+        break;
+    }
+
     return (
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgColor}`}>
-        <IconComponent size={20} />
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105 ${bgColor}`}>
+        {svgContent}
       </div>
     );
   };
