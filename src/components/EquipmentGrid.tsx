@@ -120,7 +120,7 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
             placeholder="ค้นหาอุปกรณ์..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-4 pr-10 py-2 bg-transparent border border-gray-300 rounded-full text-xs focus:outline-none focus:border-[#397d54] transition-colors"
+            className="w-full pl-4 pr-10 py-2 bg-white border border-gray-200 rounded-full text-xs focus:outline-none focus:border-[#397d54] focus:ring-2 focus:ring-[#397d54]/10 shadow-sm transition-all"
             id="search-input"
           />
           <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />

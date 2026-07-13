@@ -213,16 +213,14 @@ export default function BookingForm({
                     กรอกข้อมูลนักศึกษาเพื่อทำการจองคิวรับของในห้องสโมสรวิทยาศาสตร์ฯ
                   </p>
                 </div>
-                {preselectedItem && (
-                  <button
-                    onClick={onClearPreselected}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition"
-                    id="back-to-all-eq"
-                  >
-                    <ArrowLeft size={13} />
-                    ดูรายการทั้งหมด
-                  </button>
-                )}
+                <button
+                  onClick={onClearPreselected}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition"
+                  id="back-to-all-eq"
+                >
+                  <ArrowLeft size={13} />
+                  ดูรายการทั้งหมด
+                </button>
               </div>
 
               {formError && (

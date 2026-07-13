@@ -8,16 +8,21 @@ import LiveFeed from './components/LiveFeed';
 import AdminPanel from './components/AdminPanel';
 import LoginView from './components/LoginView';
 import LandingView from './components/LandingView';
-import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock } from 'lucide-react';
+import SettingsModal from './components/SettingsModal';
+import StudentProfile from './components/StudentProfile';
+import { useSettings } from './contexts/SettingsContext';
+import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings } from 'lucide-react';
 
 export default function App() {
+  const { setIsSettingsOpen, playPop } = useSettings();
+  
   // Main states
   const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
   const [user, setUser] = useState<User | null>(null);
   const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
-  const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
 
   // Helper to push a new activity log
@@ -285,8 +290,23 @@ export default function App() {
                 </button>
               </nav>
 
+              <button
+                onClick={() => {
+                  playPop();
+                  setIsSettingsOpen(true);
+                }}
+                className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                title="ตั้งค่าระบบ"
+              >
+                <Settings size={18} />
+              </button>
+
               {/* Active User Widget with Logout */}
-              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 pl-3 pr-2 py-1 rounded-xl text-xs" id="header-user-widget">
+              <div 
+                className={`flex items-center gap-2 border pl-3 pr-2 py-1 rounded-xl text-xs cursor-pointer transition ${activeTab === 'profile' ? 'bg-emerald-100 border-[#397d54]' : 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100'}`} 
+                id="header-user-widget"
+                onClick={() => setActiveTab('profile')}
+              >
                 <div className="flex flex-col text-right hidden lg:block" id="user-text-info">
                   <p className="font-extrabold text-emerald-950 leading-tight text-[11px]">{user.name}</p>
                   <p className="text-[9px] text-[#397d54] font-bold tracking-wider">
@@ -297,12 +317,13 @@ export default function App() {
                   {user.name.substring(0, 2)}
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     pushLog(`ผู้ใช้ ${user.name} ลงชื่อออกจากระบบ`, 'system');
                     setUser(null);
                     setViewMode('landing');
                   }}
-                  className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                  className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition ml-1"
                   title="ออกจากระบบ"
                   id="btn-logout"
                 >
@@ -316,35 +337,32 @@ export default function App() {
 
       {/* Main Container Stage */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" id="stage">
-        {/* Top Live Analytics Feed (Only for staff) */}
-        {user.role === 'staff' ? (
+        {/* Top Live Analytics Feed (Only for staff on Admin tab) */}
+        {user.role === 'staff' && activeTab === 'admin' ? (
           <LiveFeed logs={logs} equipment={equipment} bookings={bookings} />
-        ) : (
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-              <h2 className="text-xl font-extrabold text-gray-900">สวัสดี, {user.name} 👋</h2>
-              <p className="text-sm text-gray-500 mt-1">ยินดีต้อนรับสู่ระบบยืม-คืนอุปกรณ์กีฬา คณะวิทยาศาสตร์</p>
-            </div>
-            <div className="flex gap-4">
-              <div className="bg-emerald-50 px-5 py-3 rounded-xl border border-emerald-100 flex flex-col items-center min-w-[120px]">
-                <span className="text-2xl font-black text-[#397d54]">
-                  {bookings.filter(b => b.userId === user.id && b.status === 'pending').length}
-                </span>
-                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">รออนุมัติ</span>
-              </div>
-              <div className="bg-amber-50 px-5 py-3 rounded-xl border border-amber-100 flex flex-col items-center min-w-[120px]">
-                <span className="text-2xl font-black text-amber-600">
-                  {bookings.filter(b => b.userId === user.id && b.status === 'approved').length}
-                </span>
-                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">กำลังยืม</span>
-              </div>
-            </div>
-          </div>
-        )}
+        ) : null}
 
         {/* Modular Content Transitions */}
         <div className="min-h-[450px]" id="modular-content-panel">
           <AnimatePresence mode="wait">
+            {activeTab === 'profile' && (
+              <motion.div
+                key="profile-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                id="profile-view-stage"
+              >
+                <StudentProfile
+                  user={user}
+                  bookings={bookings}
+                  onNavigateCatalog={() => setActiveTab('catalog')}
+                  onCancelBooking={handleCancelBooking}
+                />
+              </motion.div>
+            )}
+
             {activeTab === 'catalog' && (
               <motion.div
                 key="catalog-view"
@@ -474,6 +492,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <SettingsModal />
     </div>
   );
 }
