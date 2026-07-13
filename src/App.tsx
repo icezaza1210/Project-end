@@ -373,7 +373,10 @@ export default function App() {
                 <BookingForm
                   equipmentList={equipment}
                   preselectedItem={preselectedEq}
-                  onClearPreselected={() => setPreselectedEq(null)}
+                  onClearPreselected={() => {
+                    setPreselectedEq(null);
+                    setActiveTab('catalog');
+                  }}
                   onSubmitBooking={handleSubmitBooking}
                   activeBookings={bookings}
                   onCancelBooking={handleCancelBooking}
