@@ -1,13 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Moon, Volume2, VolumeX, Globe, MonitorSmartphone } from 'lucide-react';
+import { X, Moon, Volume2, VolumeX, MonitorSmartphone } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function SettingsModal() {
   const { 
     isSettingsOpen, setIsSettingsOpen, 
     isDarkMode, setIsDarkMode, 
-    language, setLanguage, 
     soundEnabled, setSoundEnabled, 
     playPop, t 
   } = useSettings();
@@ -81,31 +80,7 @@ export default function SettingsModal() {
                  </button>
                </div>
 
-               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-gray-500">
-                     <Globe size={16} />
-                   </div>
-                   <div>
-                     <p className="text-sm font-bold text-gray-800">{t('ภาษา (Language)', 'Language')}</p>
-                     <p className="text-[10px] text-gray-500">{t('เลือกภาษาที่ใช้แสดงผล', 'Select display language')}</p>
-                   </div>
-                 </div>
-                 <div className="flex bg-gray-200 p-1 rounded-lg">
-                   <button 
-                     onClick={() => { setLanguage('th'); playPop(); }}
-                     className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${language === 'th' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
-                   >
-                     TH
-                   </button>
-                   <button 
-                     onClick={() => { setLanguage('en'); playPop(); }}
-                     className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${language === 'en' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
-                   >
-                     EN
-                   </button>
-                 </div>
-               </div>
+
 
                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                  <div className="flex items-center gap-3">
