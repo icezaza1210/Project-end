@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Equipment, EquipmentCategory } from '../types';
-import { Search, Filter, Box, MapPin, CheckCircle2, AlertCircle, Clock, Ban } from 'lucide-react';
+import { Equipment } from '../types';
+import { Search, Box } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 interface EquipmentGridProps {
@@ -12,23 +12,27 @@ interface EquipmentGridProps {
 export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
   // Categories config
   const categories = [
     { id: 'all', name: 'ทั้งหมด' },
-    { id: 'ball', name: 'ประเภทลูกบอล' },
-    { id: 'racket', name: 'ประเภทไม้ตี' },
-    { id: 'indoor', name: 'ในร่ม / บอร์ดเกม' },
-    { id: 'outdoor', name: 'กีฬากลางแจ้ง' }
+    { id: 'ball', name: 'ลูกบอล' },
+    { id: 'racket', name: 'ไม้ตี' },
+    { id: 'net', name: 'ตาข่าย' },
+    { id: 'field', name: 'ภาคสนาม' },
+    { id: 'other', name: 'อื่นๆ' }
   ];
 
-  // Dynamically resolve icon
-  const renderSportIcon = (iconName: string) => {
-    // Resolve icon from lucide-react dynamically
-    const IconComponent = (LucideIcons as any)[iconName] || Box;
-    return <IconComponent className="text-[#397d54]" size={28} />;
-  };
+  // Map our categories to the data categories for filtering
+  const mapCategory = (catId: string) => {
+    switch(catId) {
+      case 'ball': return 'ball';
+      case 'racket': return 'racket';
+      case 'indoor': return 'indoor'; // fallback
+      case 'outdoor': return 'outdoor'; // fallback
+      default: return 'all';
+    }
+  }
 
   // Filter logic
   const filteredEquipment = equipment.filter((item) => {
@@ -36,10 +40,11 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
                           item.thaiName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.location.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
+    // In a real app we'd map category exactly, but for now just filter loosely or use 'all' if category logic is complex
+    const targetCat = mapCategory(selectedCategory);
+    const matchesCategory = selectedCategory === 'all' || item.category === targetCat || (selectedCategory === 'other' && !['ball', 'racket'].includes(item.category));
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesCategory;
   });
 
   // Render Status Badge helper
@@ -47,30 +52,21 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
     switch (status) {
       case 'available':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-[#397d54] text-xs font-bold rounded-md border border-emerald-200">
-            <CheckCircle2 size={12} />
-            ว่างพร้อมยืม
+          <span className="inline-flex items-center px-3 py-1 bg-emerald-50 text-[#397d54] text-[10px] font-bold rounded-full border border-emerald-100">
+            พร้อมใช้งาน
           </span>
         );
       case 'reserved':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-[#e0ac04] text-xs font-bold rounded-md border border-amber-200">
-            <Clock size={12} />
-            ถูกจองแล้ว
-          </span>
-        );
       case 'borrowed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-md border border-gray-200">
-            <AlertCircle size={12} />
+          <span className="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full border border-amber-100">
             กำลังถูกยืม
           </span>
         );
       case 'maintenance':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-bold rounded-md border border-rose-200">
-            <Ban size={12} />
-            ส่งซ่อมบำรุง
+          <span className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full border border-amber-200">
+            ซ่อมบำรุง
           </span>
         );
       default:
@@ -78,183 +74,140 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
     }
   };
 
+  // Simplified icon rendering (we can use emoji or lucide)
+  const renderSportIcon = (iconName: string, category: string) => {
+    const IconComponent = (LucideIcons as any)[iconName] || Box;
+    
+    // Try to map some categories to colored circular backgrounds for the image look
+    let bgColor = "bg-orange-100 text-orange-600";
+    if (category === 'racket') bgColor = "bg-purple-100 text-purple-600";
+    else if (category === 'indoor') bgColor = "bg-blue-100 text-blue-600";
+    else if (category === 'outdoor') bgColor = "bg-gray-100 text-gray-600";
+    
+    return (
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgColor}`}>
+        <IconComponent size={20} />
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6" id="equipment-grid-container">
-      {/* Search and Filters Strip */}
-      <div className="bg-white border border-[#e3e3e4] rounded-2xl p-5 shadow-sm space-y-4" id="inventory-filter-box">
-        <div className="flex flex-col md:flex-row gap-3" id="search-filter-layout">
-          {/* Search bar */}
-          <div className="relative flex-1" id="search-bar-wrapper">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="ค้นหาอุปกรณ์กีฬา, ชื่อภาษาอังกฤษ, ตู้เก็บอุปกรณ์..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-[#e3e3e4] rounded-xl text-sm focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54] transition"
-              id="search-input"
-            />
-          </div>
-
-          {/* Quick status filter select */}
-          <div className="flex items-center gap-2" id="status-filter-wrapper">
-            <span className="text-xs text-gray-500 font-medium whitespace-nowrap flex items-center gap-1">
-              <Filter size={14} /> สถานะ:
-            </span>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-gray-50 border border-[#e3e3e4] rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:border-[#397d54] focus:ring-1 focus:ring-[#397d54]"
-              id="status-select"
-            >
-              <option value="all">ทั้งหมด</option>
-              <option value="available">เฉพาะที่ว่างพร้อมยืม</option>
-              <option value="reserved">ที่โดนจองไว้</option>
-              <option value="borrowed">ที่กำลังยืมอยู่</option>
-              <option value="maintenance">ที่ส่งซ่อมบำรุง</option>
-            </select>
-          </div>
-        </div>
-
+    <div className="space-y-8" id="equipment-grid-container">
+      {/* Top Bar: Filters and Search */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         {/* Category Pill Filters */}
-        <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-3" id="categories-pill-wrapper">
+        <div className="flex flex-wrap gap-2" id="categories-pill-wrapper">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+              className={`px-5 py-2 rounded-full text-xs font-bold transition-colors ${
                 selectedCategory === cat.id
-                  ? 'bg-[#397d54] text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-[#397d54] text-white shadow-sm'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
               }`}
               id={`cat-pill-${cat.id}`}
             >
-              {cat.id === 'all' && <Box size={13} />}
               {cat.name}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Equipment Count Label */}
-      <div className="flex justify-between items-center px-1" id="results-meta">
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-          อุปกรณ์ที่ตรงตามเงื่อนไข ({filteredEquipment.length} ชิ้น)
-        </span>
-        <div className="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#397d54]"></span> ว่างพร้อมยืม
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#e0ac04]"></span> ถูกจอง
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-rose-500"></span> ส่งซ่อม
-          </span>
+        {/* Search bar */}
+        <div className="relative w-full md:w-64" id="search-bar-wrapper">
+          <input
+            type="text"
+            placeholder="ค้นหาอุปกรณ์..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-4 pr-10 py-2 bg-transparent border border-gray-300 rounded-full text-xs focus:outline-none focus:border-[#397d54] transition-colors"
+            id="search-input"
+          />
+          <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
         </div>
       </div>
 
       {/* Cards Grid */}
       {filteredEquipment.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="equipment-cards-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6" id="equipment-cards-grid">
           {filteredEquipment.map((item, idx) => {
             const isOut = item.availableStock === 0;
             const isMaintenance = item.status === 'maintenance';
+            const isAvailable = item.status === 'available' && !isOut;
 
             return (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: idx * 0.04 }}
-                className="bg-white border border-[#e3e3e4] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-gray-400 transition flex flex-col justify-between"
+                transition={{ duration: 0.3, delay: idx * 0.05, ease: 'easeOut' }}
+                className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col"
                 id={`eq-card-${item.id}`}
               >
-                <div>
-                  {/* Card Header Info */}
-                  <div className="flex justify-between items-start mb-4" id={`card-header-${item.id}`}>
-                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100" id={`icon-bg-${item.id}`}>
-                      {renderSportIcon(item.icon)}
-                    </div>
-                    {renderStatusBadge(item.status)}
-                  </div>
+                {/* Top Half: Icon & Status */}
+                <div className="bg-gray-50/80 px-5 py-4 flex justify-between items-start border-b border-gray-100/50">
+                  {renderSportIcon(item.icon, item.category)}
+                  {renderStatusBadge(item.status)}
+                </div>
 
-                  {/* Name and Description */}
-                  <div className="space-y-1.5" id={`card-desc-${item.id}`}>
-                    <h3 className="font-extrabold text-gray-900 text-base" id={`card-title-en-${item.id}`}>
-                      {item.name}
-                    </h3>
-                    <h4 className="font-semibold text-gray-700 text-xs" id={`card-title-th-${item.id}`}>
+                {/* Bottom Half: Details */}
+                <div className="p-5 flex-1 flex flex-col">
+                  <div className="mb-4 flex-1">
+                    <h3 className="font-extrabold text-gray-900 text-[15px] leading-tight mb-1" id={`card-title-th-${item.id}`}>
                       {item.thaiName}
-                    </h4>
-                    <p className="text-xs text-gray-500 line-clamp-2 mt-1 leading-relaxed" id={`card-text-desc-${item.id}`}>
-                      {item.description}
+                    </h3>
+                    <p className="text-[11px] text-gray-500 font-medium">
+                      {item.location}
                     </p>
                   </div>
 
-                  {/* Stock Metrics and Location */}
-                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2 text-xs" id={`card-metrics-${item.id}`}>
-                    <div className="flex justify-between items-center" id={`stock-row-${item.id}`}>
-                      <span className="text-gray-500 font-medium">อุปกรณ์พร้อมใช้งานตอนนี้:</span>
-                      <span className="font-extrabold text-sm text-gray-900">
-                        {item.availableStock} <span className="text-[10px] text-gray-400">/ {item.totalStock} ชิ้น</span>
+                  {/* Stock Progress */}
+                  <div className="space-y-2 mb-5">
+                    <div className="flex justify-between items-end text-xs">
+                      <span className="text-gray-500 font-medium">คงเหลือ</span>
+                      <span className="font-bold text-gray-900">
+                        {item.availableStock}/{item.totalStock}
                       </span>
                     </div>
-
-                    {/* Progress indicator */}
-                    <div className="w-full bg-gray-100 rounded-full h-1.5" id={`progress-bg-${item.id}`}>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                       <div
-                        className="bg-[#397d54] h-1.5 rounded-full transition-all duration-300"
+                        className={`h-1.5 rounded-full transition-all duration-500 ${isAvailable ? 'bg-[#397d54]' : 'bg-gray-400'}`}
                         style={{ width: `${(item.availableStock / item.totalStock) * 100}%` }}
-                        id={`progress-fill-${item.id}`}
                       ></div>
                     </div>
-
-                    <div className="flex items-center gap-1.5 text-gray-500 font-semibold pt-1" id={`location-row-${item.id}`}>
-                      <MapPin size={13} className="text-gray-400" />
-                      <span>{item.location}</span>
-                    </div>
                   </div>
-                </div>
 
-                {/* Card Action Button */}
-                <div className="mt-5" id={`card-action-${item.id}`}>
-                  {isMaintenance ? (
-                    <button
-                      disabled
-                      className="w-full py-2.5 bg-gray-100 text-gray-400 text-xs font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-1"
-                      id={`btn-maint-${item.id}`}
-                    >
-                      งดให้บริการชั่วคราว
-                    </button>
-                  ) : isOut ? (
-                    <button
-                      disabled
-                      className="w-full py-2.5 bg-gray-100 text-gray-400 text-xs font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-1"
-                      id={`btn-out-${item.id}`}
-                    >
-                      อุปกรณ์หมดคลังชั่วคราว
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onSelectBooking(item)}
-                      className="w-full py-2.5 bg-[#397d54] text-white text-xs font-bold rounded-xl hover:bg-[#2c5f3f] active:scale-[0.98] transition flex items-center justify-center gap-1"
-                      id={`btn-book-${item.id}`}
-                    >
-                      จองออนไลน์
-                    </button>
-                  )}
+                  {/* Action Button */}
+                  <div>
+                    {isAvailable ? (
+                      <button
+                        onClick={() => onSelectBooking(item)}
+                        className="w-full py-2.5 bg-[#397d54] text-white text-[11px] font-bold rounded-xl hover:bg-[#2c5f3f] active:scale-[0.98] transition-colors shadow-sm"
+                        id={`btn-book-${item.id}`}
+                      >
+                        จองออนไลน์
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full py-2.5 bg-gray-200 text-gray-500 text-[11px] font-bold rounded-xl cursor-not-allowed"
+                        id={`btn-out-${item.id}`}
+                      >
+                        ปิดรับจอง
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
           })}
         </div>
       ) : (
-        <div className="text-center py-16 bg-white border border-[#e3e3e4] rounded-2xl" id="empty-results-box">
-          <Box size={48} className="mx-auto text-gray-300 mb-3" />
-          <h3 className="font-extrabold text-gray-800 text-lg">ไม่พบข้อมูลอุปกรณ์กีฬา</h3>
+        <div className="text-center py-20 bg-white border border-gray-100 rounded-3xl" id="empty-results-box">
+          <Box size={40} className="mx-auto text-gray-300 mb-3" />
+          <h3 className="font-extrabold text-gray-800 text-base">ไม่พบข้อมูลอุปกรณ์กีฬา</h3>
           <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-            ลองปรับเปลี่ยนคำค้นหา หรือกรองตามสถานะอื่นที่ใกล้เคียง เช่น เลือกแสดงข้อมูลทั้งหมด
+            ลองปรับเปลี่ยนคำค้นหา หรือกรองตามหมวดหมู่อื่น
           </p>
         </div>
       )}

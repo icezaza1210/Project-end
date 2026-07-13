@@ -219,12 +219,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#e3e3e4] text-gray-800 font-sans selection:bg-[#397d54] selection:text-white" id="main-layout">
-      {/* Simulation Helper Banner */}
-      <div className="bg-amber-400 text-gray-900 text-center py-1.5 px-4 text-[10px] sm:text-xs font-black flex items-center justify-center gap-1.5 border-b border-amber-500 shadow-inner" id="simulator-info-strip">
-        <Sparkles size={14} className="animate-spin text-amber-900" />
-        <span>โหมดจำลองระบบ: คุณสามารถ "ลองสวมบทนักศึกษา" กดจองของ แล้วสลับแท็บไป "สวมบทสตาฟฟ์" กดยอมรับ/คืนของ เพื่อดูสต็อกอัพเดทเรียลไทม์ได้เลย!</span>
-      </div>
-
       {/* Primary Sporty Nav Header */}
       <header className="bg-white border-b border-gray-300 sticky top-0 z-40" id="global-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="header-container">
@@ -322,8 +316,31 @@ export default function App() {
 
       {/* Main Container Stage */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" id="stage">
-        {/* Top Live Analytics Feed (Active on Catalog & Form views) */}
-        <LiveFeed logs={logs} equipment={equipment} bookings={bookings} />
+        {/* Top Live Analytics Feed (Only for staff) */}
+        {user.role === 'staff' ? (
+          <LiveFeed logs={logs} equipment={equipment} bookings={bookings} />
+        ) : (
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+              <h2 className="text-xl font-extrabold text-gray-900">สวัสดี, {user.name} 👋</h2>
+              <p className="text-sm text-gray-500 mt-1">ยินดีต้อนรับสู่ระบบยืม-คืนอุปกรณ์กีฬา คณะวิทยาศาสตร์</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="bg-emerald-50 px-5 py-3 rounded-xl border border-emerald-100 flex flex-col items-center min-w-[120px]">
+                <span className="text-2xl font-black text-[#397d54]">
+                  {bookings.filter(b => b.userId === user.id && b.status === 'pending').length}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">รออนุมัติ</span>
+              </div>
+              <div className="bg-amber-50 px-5 py-3 rounded-xl border border-amber-100 flex flex-col items-center min-w-[120px]">
+                <span className="text-2xl font-black text-amber-600">
+                  {bookings.filter(b => b.userId === user.id && b.status === 'approved').length}
+                </span>
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">กำลังยืม</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modular Content Transitions */}
         <div className="min-h-[450px]" id="modular-content-panel">
@@ -443,16 +460,16 @@ export default function App() {
       <footer className="bg-white border-t border-gray-300 py-6 mt-16 text-center text-xs text-gray-500" id="global-footer">
         <div className="max-w-7xl mx-auto px-4" id="footer-container">
           <p className="font-bold text-gray-700">สโมสรนักศึกษา คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร</p>
-          <p className="mt-1 font-light">ระบบยืม-คืนและจองอุปกรณ์ออนไลน์มินิมอล • ออกแบบสไตล์ Minimalist Sporty Concepts • สีประจำคณะเขียวสากลวิทยาศาสตร์</p>
-          <div className="flex justify-center items-center gap-4 mt-3" id="color-palette-preview">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#397d54] inline-block"></span> เขียวคณะวิทยาศาสตร์ #397d54 (30%)
+          <p className="mt-1 font-light">ระบบให้บริการยืม-คืนอุปกรณ์กีฬาออนไลน์ • ตรวจสอบสถานะเรียลไทม์ • จองล่วงหน้าได้อย่างสะดวกและรวดเร็ว</p>
+          <div className="flex flex-wrap justify-center items-center gap-6 mt-3" id="system-features-preview">
+            <span className="flex items-center gap-1.5 text-emerald-700">
+              <Compass size={14} /> ค้นหาและตรวจสอบสถานะง่ายดาย
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#e0ac04] inline-block"></span> ทองสปอร์ต #e0ac04 (10%)
+            <span className="flex items-center gap-1.5 text-emerald-700">
+              <ClipboardList size={14} /> ระบบการจองที่แม่นยำ
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#e3e3e4] inline-block border border-gray-300"></span> เทาพื้นหินอ่อน #e3e3e4 (60%)
+            <span className="flex items-center gap-1.5 text-emerald-700">
+              <Shield size={14} /> การจัดการที่มีประสิทธิภาพ
             </span>
           </div>
         </div>
