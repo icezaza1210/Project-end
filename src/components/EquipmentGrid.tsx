@@ -206,6 +206,21 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
         );
         break;
 
+      case 'Takraw': // Sepak Takraw
+        bgColor = "bg-amber-100 text-amber-800";
+        svgContent = (
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2c3.5 4 3.5 16 0 20" />
+            <path d="M12 2c-3.5 4-3.5 16 0 20" />
+            <path d="M2 12c4 3.5 16 3.5 20 0" />
+            <path d="M2 12c4-3.5 16-3.5 20 0" />
+            <path d="M4.9 4.9c5 2 12 9 14.2 14.2" strokeWidth="1.5" />
+            <path d="M19.1 4.9c-5 2-12 9-14.2 14.2" strokeWidth="1.5" />
+          </svg>
+        );
+        break;
+
       default:
         // Fallback to standard Lucide Box if anything else is defined
         const IconComponent = (LucideIcons as any)[iconName] || Box;
