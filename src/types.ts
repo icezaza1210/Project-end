@@ -30,6 +30,9 @@ export interface Booking {
   status: BookingStatus;
   ticketCode: string;
   createdAt: string;
+  issueReported?: boolean;
+  issueDetails?: string;
+  issueStatus?: 'pending' | 'resolved';
 }
 
 export interface ActivityLog {
@@ -44,5 +47,8 @@ export interface User {
   id: string;
   role: 'student' | 'staff';
   department?: string;
+  penaltyPoints?: number;
+
+  isBlacklisted?: boolean;
 }
 

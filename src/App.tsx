@@ -12,7 +12,7 @@ import SettingsModal from './components/SettingsModal';
 import StudentProfile from './components/StudentProfile';
 import HeroBanner from './components/HeroBanner';
 import { useSettings } from './contexts/SettingsContext';
-import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio } from 'lucide-react';
+import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio, Megaphone, Check } from 'lucide-react';
 
 export default function App() {
   const { t, setIsSettingsOpen, playPop } = useSettings();
@@ -20,13 +20,87 @@ export default function App() {
   // Main states
   const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
   const [user, setUser] = useState<User | null>(null);
+  
+  // New States for Penalties & Issues
+  const [usersDb, setUsersDb] = useState<Record<string, User>>({
+    '660510999': { id: '660510999', name: 'ณัฐพงษ์ ยอดวิทยา', role: 'student', department: 'วิทยาการคอมพิวเตอร์', penaltyPoints: 0, isBlacklisted: false },
+    'STAFF-MAIN': { id: 'STAFF-MAIN', name: 'สตาฟฟ์สโมสรฯ', role: 'staff', department: 'ส่วนกลาง', penaltyPoints: 0, isBlacklisted: false }
+  });
   const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([
+    {
+      id: 'mock-booking-1',
+      studentName: 'ณัฐพงษ์ ยอดวิทยา',
+      studentId: '660510999',
+      department: 'วิทยาการคอมพิวเตอร์',
+      equipmentId: 'eq-1',
+      equipmentName: 'Football',
+      quantity: 1,
+      borrowTime: '10:00',
+      returnTime: '16:00',
+      status: 'active',
+      ticketCode: 'TK-1234',
+      createdAt: new Date().toLocaleDateString('th-TH')
+    }
+  ]);
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Notifications Logic
+  const myActiveBookings = bookings.filter(b => b.studentId === user?.id && b.status === 'active');
+  let urgentCount = 0;
+  
+  const getBookingAlerts = () => {
+    if (user?.role === 'staff') {
+      const pendingBookings = bookings.filter(b => b.status === 'pending');
+      urgentCount += pendingBookings.length;
+      return pendingBookings.map(b => ({
+        id: b.id,
+        type: 'warning',
+        msg: `รอการอนุมัติ: ${b.equipmentName}`,
+        name: b.studentName
+      }));
+    }
+
+    return myActiveBookings.map(b => {
+      if (!b.returnTime || b.returnTime === 'ไม่ระบุ') return null;
+      try {
+        const [retHour, retMin] = b.returnTime.split(':').map(Number);
+        const currHour = currentTime.getHours();
+        const currMin = currentTime.getMinutes();
+        const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
+        
+        let alertType = 'safe';
+        let alertMsg = '';
+        if (diff < 0) {
+          alertType = 'danger';
+          alertMsg = `เลยกำหนดคืน (${b.equipmentName})`;
+          urgentCount++;
+        } else if (diff <= 30) {
+          alertType = 'warning';
+          alertMsg = `เหลือเวลา ${diff} นาที (${b.equipmentName})`;
+          urgentCount++;
+        }
+        
+        if (alertType !== 'safe') {
+          return { id: b.id, type: alertType, msg: alertMsg, name: b.equipmentName };
+        }
+      } catch (e) {}
+      return null;
+    }).filter(Boolean);
+  };
+  
+  const alerts = getBookingAlerts();
 
   // Helper to push a new activity log
   const pushLog = (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
@@ -42,6 +116,37 @@ export default function App() {
   };
 
   // 1. Submit online booking (Pending state)
+  const handleReportIssue = (bookingId: string, details: string) => {
+    setBookings(prev => prev.map(b => 
+      b.id === bookingId ? { ...b, issueReported: true, issueDetails: details, issueStatus: 'pending' } : b
+    ));
+    // Add log
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      const newLog: ActivityLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+        message: `${user?.name} รายงานปัญหา: ${details} (${booking.equipmentName})`,
+        type: 'maintenance'
+      };
+      setLogs(prev => [newLog, ...prev]);
+    }
+  };
+
+  const handleUpdateUserStatus = (userId: string, penaltyDelta: number, isBlacklisted: boolean) => {
+    setUsersDb(prev => {
+      const u = prev[userId] || { id: userId, name: 'Unknown', role: 'student', penaltyPoints: 0, isBlacklisted: false };
+      return {
+        ...prev,
+        [userId]: {
+          ...u,
+          penaltyPoints: Math.max(0, (u.penaltyPoints || 0) + penaltyDelta),
+          isBlacklisted
+        }
+      };
+    });
+  };
+
   const handleSubmitBooking = (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
     const ticketCode = `SCI-${Math.floor(1000 + Math.random() * 9000)}`;
     const newBooking: Booking = {
@@ -233,6 +338,7 @@ export default function App() {
         onBack={() => setViewMode('landing')}
         onLogin={(usr) => {
           setUser(usr);
+          setActiveTab('catalog');
           setViewMode('app');
           pushLog(`เข้าสู่ระบบในฐานะ ${usr.role === 'staff' ? 'สตาฟฟ์สโมสรฯ' : 'นักศึกษา'}: ${usr.name} (${usr.id}) สำเร็จ`, 'system');
         }}
@@ -296,6 +402,66 @@ export default function App() {
                 )}
               </nav>
 
+              {/* Notifications Widget */}
+              <div className="relative">
+                <button
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all relative ${notificationsOpen ? 'bg-rose-50 text-rose-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+                  title={t('การแจ้งเตือน', 'Notifications')}
+                >
+                  <Bell size={18} />
+                  {urgentCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse border-2 border-white"></span>
+                  )}
+                </button>
+                {/* Dropdown */}
+                {notificationsOpen && <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)}></div>}
+                <AnimatePresence>
+                {notificationsOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden origin-top-right"
+                    >
+                      <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <h4 className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                          <Bell size={14} className="text-rose-500" />
+                          การแจ้งเตือนอุปกรณ์
+                        </h4>
+                        <span className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded-md font-bold text-gray-500">{alerts.length}</span>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+                        {alerts.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400">
+                            <Check size={24} className="mx-auto mb-2 opacity-30" />
+                            <p className="text-xs font-bold text-gray-500">ไม่มีการแจ้งเตือน</p>
+                          </div>
+                        ) : (
+                          alerts.map((al: any) => (
+                            <div key={al.id} className={`p-3 rounded-xl border flex gap-3 items-start ${al.type === 'danger' ? 'bg-rose-50/80 border-rose-100' : 'bg-amber-50/80 border-amber-100'}`}>
+                              <div className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm ${al.type === 'danger' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                                <AlertCircle size={14} />
+                              </div>
+                              <div className="flex-1">
+                                <p className={`text-[13px] font-black leading-tight ${al.type === 'danger' ? 'text-rose-700' : 'text-amber-700'}`}>{al.name}</p>
+                                <p className={`text-[11px] mt-0.5 font-bold ${al.type === 'danger' ? 'text-rose-600' : 'text-amber-600'}`}>{al.msg}</p>
+                                <button 
+                                  className="text-[10px] bg-white text-gray-600 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2 py-1 rounded shadow-sm"
+                                  onClick={() => { setActiveTab(user?.role === 'staff' ? 'admin' : 'profile'); setNotificationsOpen(false); }}
+                                >
+                                  {user?.role === 'staff' ? 'ดูรายละเอียดในระบบจัดการ' : 'ดูรายละเอียดในโปรไฟล์'} &rarr;
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                )}
+                </AnimatePresence>
+              </div>
+
               <button
                 onClick={() => {
                   playPop();
@@ -327,6 +493,7 @@ export default function App() {
                     e.stopPropagation();
                     pushLog(`ผู้ใช้ ${user.name} ลงชื่อออกจากระบบ`, 'system');
                     setUser(null);
+                    setActiveTab('catalog');
                     setViewMode('landing');
                   }}
                   className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition ml-1"
@@ -441,6 +608,7 @@ export default function App() {
                         onClick={() => {
                           pushLog(`ผู้ใช้ลงชื่อออกจากระบบเพื่อสลับบัญชี`, 'system');
                           setUser(null);
+                          setActiveTab('catalog');
                         }}
                         className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
                         id="logout-back-to-login"
@@ -451,6 +619,11 @@ export default function App() {
                   </div>
                 ) : (
                   <AdminPanel
+                  usersDb={Object.values(usersDb)}
+                  onUpdateUserStatus={handleUpdateUserStatus}
+                  onResolveIssue={(bookingId) => {
+                    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, issueStatus: 'resolved' } : b));
+                  }}
                     bookings={bookings}
                     equipment={equipment}
                     onApproveBooking={handleApproveBooking}

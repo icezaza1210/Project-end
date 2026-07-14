@@ -13,6 +13,9 @@ interface AdminPanelProps {
   onReturnBooking: (bookingId: string) => void;
   onToggleMaintenance: (equipmentId: string) => void;
   onUpdateStock?: (equipmentId: string, newTotal: number) => void;
+  usersDb?: any[];
+  onUpdateUserStatus?: (userId: string, penaltyDelta: number, isBlacklisted: boolean) => void;
+  onResolveIssue?: (bookingId: string) => void;
 }
 
 export default function AdminPanel({
@@ -23,12 +26,16 @@ export default function AdminPanel({
   onPickupBooking,
   onReturnBooking,
   onToggleMaintenance,
-  onUpdateStock
+  onUpdateStock,
+  usersDb = [],
+  onUpdateUserStatus,
+  onResolveIssue
 }: AdminPanelProps) {
   const { t, language } = useSettings();
-  const [mainTab, setMainTab] = useState<'bookings' | 'inventory'>('bookings');
+  const [mainTab, setMainTab] = useState<'bookings' | 'inventory' | 'users'>('bookings');
   const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'history'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
 
   const pendingBookings = bookings.filter((b) => b.status === 'pending');
   const currentActiveBorrows = bookings.filter((b) => b.status === 'approved' || b.status === 'active');
@@ -44,6 +51,12 @@ export default function AdminPanel({
       b.equipmentName.toLowerCase().includes(lowerQ)
     );
   };
+
+  const filteredUsers = usersDb.filter(u => {
+    if (!userSearchQuery) return true;
+    const lowerQ = userSearchQuery.toLowerCase();
+    return u.name.toLowerCase().includes(lowerQ) || u.id.toLowerCase().includes(lowerQ);
+  });
 
   const filteredPending = getFilteredBookings(pendingBookings);
   const filteredActive = getFilteredBookings(currentActiveBorrows);
@@ -88,6 +101,13 @@ export default function AdminPanel({
         >
           <Package size={16} className={mainTab === 'inventory' ? 'text-[#397d54]' : ''} />
           {t('คลังอุปกรณ์', 'Inventory')}
+        </button>
+        <button
+          onClick={() => setMainTab('users')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${mainTab === 'users' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <Shield size={16} className={mainTab === 'users' ? 'text-[#397d54]' : ''} />
+          {t('ผู้ใช้งาน', 'Users')}
         </button>
       </div>
 
@@ -247,6 +267,15 @@ export default function AdminPanel({
                               {t('รับคืนเข้าสต็อก', 'Receive Return')}
                             </button>
                           )}
+                          {b.issueReported && b.issueStatus === 'pending' && (
+                            <button
+                              onClick={() => onResolveIssue && onResolveIssue(b.id)}
+                              className="w-full mt-2 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                              <AlertCircle size={14} />
+                              รับทราบปัญหา ({b.issueDetails})
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -375,6 +404,92 @@ export default function AdminPanel({
                   );
                 })}
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {mainTab === 'users' && (
+          <motion.div
+            key="tab-users"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-black text-gray-900">จัดการผู้ใช้งาน & บทลงโทษ</h3>
+              <div className="relative w-64">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหา ID หรือ ชื่อนักศึกษา..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#397d54]/20 focus:border-[#397d54]"
+                />
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="pb-3 font-bold text-gray-500">ID</th>
+                    <th className="pb-3 font-bold text-gray-500">ชื่อ - สกุล</th>
+                    <th className="pb-3 font-bold text-gray-500">บทบาท</th>
+                    <th className="pb-3 font-bold text-gray-500 text-center">แต้มหัก</th>
+                    <th className="pb-3 font-bold text-gray-500 text-center">แบล็คลิสต์</th>
+                    <th className="pb-3 font-bold text-gray-500 text-right">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredUsers.map(u => (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-4 font-mono text-xs">{u.id}</td>
+                      <td className="py-4 font-bold text-gray-900">{u.name} <span className="text-xs font-normal text-gray-500 block">{u.department}</span></td>
+                      <td className="py-4">
+                        <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md ${u.role === 'staff' ? 'bg-[#397d54] text-white' : 'bg-gray-100 text-gray-600'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-4 text-center">
+                        <span className={`font-black ${u.penaltyPoints ? 'text-rose-600' : 'text-gray-400'}`}>
+                          {u.penaltyPoints || 0}
+                        </span>
+                      </td>
+                      <td className="py-4 text-center">
+                        {u.isBlacklisted ? (
+                           <span className="px-2 py-1 bg-black text-white text-[10px] font-bold rounded uppercase">Blacklisted</span>
+                        ) : (
+                           <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 text-right space-x-2">
+                        <button 
+                          onClick={() => onUpdateUserStatus && onUpdateUserStatus(u.id, 10, u.isBlacklisted || false)}
+                          className="px-2 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded hover:bg-rose-100"
+                          title="เพิ่มแต้มหัก (10)"
+                        >
+                          +หักแต้ม
+                        </button>
+                        <button 
+                          onClick={() => onUpdateUserStatus && onUpdateUserStatus(u.id, -10, u.isBlacklisted || false)}
+                          className="px-2 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded hover:bg-gray-100"
+                          title="ลดแต้มหัก (10)"
+                        >
+                          -หักแต้ม
+                        </button>
+                        <button 
+                          onClick={() => onUpdateUserStatus && onUpdateUserStatus(u.id, 0, !u.isBlacklisted)}
+                          className={`px-2 py-1 text-[10px] font-bold rounded ${u.isBlacklisted ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-black text-white hover:bg-gray-800'}`}
+                        >
+                          {u.isBlacklisted ? 'ปลดแบล็คลิสต์' : 'แบล็คลิสต์'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </motion.div>
         )}
