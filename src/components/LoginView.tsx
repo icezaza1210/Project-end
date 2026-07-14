@@ -150,7 +150,7 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
             </button>
             <button
               type="button"
-              onClick={() => { setRole('staff'); setError(null); }}
+              onClick={() => { setRole('staff'); setIsRegister(false); setError(null); }}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                 role === 'staff'
                   ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5'
@@ -274,28 +274,13 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
                   </div>
                 </div>
 
-                {isRegister && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-1.5 pt-1 overflow-hidden">
-                    <label className="text-[11px] font-bold text-gray-500 block uppercase tracking-wider ml-1">เบอร์โทรศัพท์ติดต่อ</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="เช่น 0812345678"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
-                      id="input-register-staff-phone"
-                    />
-                  </motion.div>
-                )}
-
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-end ml-1 mb-1">
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">รหัสผ่านสตาฟฟ์</label>
                   </div>
                   <input
                     type="password"
-                    placeholder={isRegister ? "ตั้งรหัสผ่านสำหรับเข้าสู่ระบบ" : "กรอกรหัส หรือเว้นว่าง (แนะนำ: staff123)"}
+                    placeholder="กรอกรหัส หรือเว้นว่าง (แนะนำ: staff123)"
                     value={staffCode}
                     onChange={(e) => setStaffCode(e.target.value)}
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
@@ -319,23 +304,25 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
               </button>
             </div>
             
-            <div className="text-center text-[11px] text-gray-500 mt-5 pt-3 border-t border-gray-100 flex items-center justify-center gap-1.5">
-              {isRegister ? (
-                <>
-                  <span>มีบัญชีอยู่แล้ว?</span>
-                  <button type="button" onClick={() => setIsRegister(false)} className={`font-bold hover:underline cursor-pointer transition-colors ${role === 'student' ? 'text-[#397d54]' : 'text-gray-900'}`}>
-                    เข้าสู่ระบบ
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span>ยังไม่มีบัญชี?</span>
-                  <button type="button" onClick={() => setIsRegister(true)} className={`font-bold hover:underline cursor-pointer transition-colors ${role === 'student' ? 'text-[#397d54]' : 'text-gray-900'}`}>
-                    ลงทะเบียนใช้งาน
-                  </button>
-                </>
-              )}
-            </div>
+            {role === 'student' && (
+              <div className="text-center text-[11px] text-gray-500 mt-5 pt-3 border-t border-gray-100 flex items-center justify-center gap-1.5">
+                {isRegister ? (
+                  <>
+                    <span>มีบัญชีอยู่แล้ว?</span>
+                    <button type="button" onClick={() => setIsRegister(false)} className="font-bold hover:underline cursor-pointer transition-colors text-[#397d54]">
+                      เข้าสู่ระบบ
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span>ยังไม่มีบัญชี?</span>
+                    <button type="button" onClick={() => setIsRegister(true)} className="font-bold hover:underline cursor-pointer transition-colors text-[#397d54]">
+                      ลงทะเบียนใช้งาน
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </form>
 
           {/* Quick Sandbox Login Section */}
