@@ -25,6 +25,7 @@ export default function App() {
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Helper to push a new activity log
@@ -171,6 +172,23 @@ export default function App() {
     pushLog(`ผู้ใช้ยกเลิกคิวจองหมายเลข ${targetBooking.ticketCode} ด้วยตัวเอง`, 'system');
   };
 
+  const handleUpdateEquipmentStock = (equipmentId: string, newTotal: number) => {
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === equipmentId) {
+          const diff = newTotal - eq.totalStock;
+          return {
+            ...eq,
+            totalStock: newTotal,
+            availableStock: Math.max(0, eq.availableStock + diff)
+          };
+        }
+        return eq;
+      })
+    );
+    pushLog(`สตาฟฟ์อัพเดทสต็อกอุปกรณ์สำเร็จ`, 'system');
+  };
+
   // 7. Toggle maintenance mode of equipment
   const handleToggleMaintenance = (equipmentId: string) => {
     setEquipment((prevEq) =>
@@ -202,7 +220,7 @@ export default function App() {
   // Action helper when user clicks book online from a card
   const handleQuickBookSelect = (item: Equipment) => {
     setPreselectedEq(item);
-    setActiveTab('booking');
+    setIsBookingOpen(true);
   };
 
   if (viewMode === 'landing') {
@@ -372,27 +390,7 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === 'booking' && (
-              <motion.div
-                key="booking-view"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                id="booking-view-stage"
-              >
-                <BookingForm
-                  equipmentList={equipment}
-                  preselectedItem={preselectedEq}
-                  onClearPreselected={() => setPreselectedEq(null)}
-                  onBack={() => { setPreselectedEq(null); setActiveTab('catalog'); }}
-                  onSubmitBooking={handleSubmitBooking}
-                  activeBookings={bookings}
-                  onCancelBooking={handleCancelBooking}
-                  currentUser={user}
-                />
-              </motion.div>
-            )}
+
 
             {activeTab === 'admin' && (
               <motion.div
@@ -460,6 +458,7 @@ export default function App() {
                     onPickupBooking={handlePickupBooking}
                     onReturnBooking={handleReturnBooking}
                     onToggleMaintenance={handleToggleMaintenance}
+                    onUpdateStock={handleUpdateEquipmentStock}
                   />
                 )}
               </motion.div>
@@ -486,6 +485,20 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <AnimatePresence>
+        {isBookingOpen && (
+          <BookingForm
+            equipmentList={equipment}
+            preselectedItem={preselectedEq}
+            onClearPreselected={() => setPreselectedEq(null)}
+            onBack={() => { setPreselectedEq(null); setIsBookingOpen(false); }}
+            onSubmitBooking={handleSubmitBooking}
+            activeBookings={bookings}
+            onCancelBooking={handleCancelBooking}
+            currentUser={user}
+          />
+        )}
+      </AnimatePresence>
       <SettingsModal />
 
       {/* Floating Contact Support */}
