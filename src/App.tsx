@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from './data';
-import { Equipment, Booking, ActivityLog, User, EquipmentStatus } from './types';
+import { Equipment, Booking, ActivityLog, User } from './types';
 import EquipmentGrid from './components/EquipmentGrid';
 import BookingForm from './components/BookingForm';
 import LiveFeed from './components/LiveFeed';
@@ -12,9 +12,7 @@ import SettingsModal from './components/SettingsModal';
 import StudentProfile from './components/StudentProfile';
 import HeroBanner from './components/HeroBanner';
 import { useSettings } from './contexts/SettingsContext';
-import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio } from 'lucide-react';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio, Megaphone, Check } from 'lucide-react';
 
 export default function App() {
   const { t, setIsSettingsOpen, playPop } = useSettings();
@@ -22,259 +20,324 @@ export default function App() {
   // Main states
   const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
   const [user, setUser] = useState<User | null>(null);
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  
+  // New States for Penalties & Issues
+  const [usersDb, setUsersDb] = useState<Record<string, User>>({
+    '660510999': { id: '660510999', name: 'ณัฐพงษ์ ยอดวิทยา', role: 'student', department: 'วิทยาการคอมพิวเตอร์', penaltyPoints: 0, isBlacklisted: false },
+    'STAFF-MAIN': { id: 'STAFF-MAIN', name: 'สตาฟฟ์สโมสรฯ', role: 'staff', department: 'ส่วนกลาง', penaltyPoints: 0, isBlacklisted: false }
+  });
+  const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
+  const [bookings, setBookings] = useState<Booking[]>([
+    {
+      id: 'mock-booking-1',
+      studentName: 'ณัฐพงษ์ ยอดวิทยา',
+      studentId: '660510999',
+      department: 'วิทยาการคอมพิวเตอร์',
+      equipmentId: 'eq-1',
+      equipmentName: 'Football',
+      quantity: 1,
+      borrowTime: '10:00',
+      returnTime: '16:00',
+      status: 'active',
+      ticketCode: 'TK-1234',
+      createdAt: new Date().toLocaleDateString('th-TH')
+    }
+  ]);
+  const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
   const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Synchronize with Firebase
   useEffect(() => {
-    // 1. Sync Equipment
-    const unsubscribeEq = onSnapshot(collection(db, 'equipment'), async (snapshot) => {
-      if (snapshot.empty) {
-        // Populate Firestore with INITIAL_EQUIPMENT if empty
-        for (const eq of INITIAL_EQUIPMENT) {
-          await setDoc(doc(db, 'equipment', eq.id), eq);
-        }
-      } else {
-        const eqList: Equipment[] = [];
-        snapshot.forEach((doc) => {
-          eqList.push(doc.data() as Equipment);
-        });
-        // Sort by ID to keep order consistent
-        eqList.sort((a, b) => a.id.localeCompare(b.id));
-        setEquipment(eqList);
-      }
-    });
-
-    // 2. Sync Bookings
-    const unsubscribeBookings = onSnapshot(collection(db, 'bookings'), (snapshot) => {
-      const bookingList: Booking[] = [];
-      snapshot.forEach((doc) => {
-        bookingList.push(doc.data() as Booking);
-      });
-      // Sort bookings by creation or id descending (newest first)
-      bookingList.sort((a, b) => b.id.localeCompare(a.id));
-      setBookings(bookingList);
-    });
-
-    // 3. Sync Logs
-    const unsubscribeLogs = onSnapshot(collection(db, 'logs'), async (snapshot) => {
-      if (snapshot.empty) {
-        // Populate Firestore with INITIAL_LOGS if empty
-        for (const log of INITIAL_LOGS) {
-          await setDoc(doc(db, 'logs', log.id), log);
-        }
-      } else {
-        const logList: ActivityLog[] = [];
-        snapshot.forEach((doc) => {
-          logList.push(doc.data() as ActivityLog);
-        });
-        // Sort logs by ID ascending to show chronological order
-        logList.sort((a, b) => a.id.localeCompare(b.id));
-        setLogs(logList);
-      }
-    });
-
-    return () => {
-      unsubscribeEq();
-      unsubscribeBookings();
-      unsubscribeLogs();
-    };
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
   }, []);
 
+  // Notifications Logic
+  const myActiveBookings = bookings.filter(b => b.studentId === user?.id && b.status === 'active');
+  let urgentCount = 0;
+  
+  const getBookingAlerts = () => {
+    if (user?.role === 'staff') {
+      const pendingBookings = bookings.filter(b => b.status === 'pending');
+      urgentCount += pendingBookings.length;
+      return pendingBookings.map(b => ({
+        id: b.id,
+        type: 'warning',
+        msg: `รอการอนุมัติ: ${b.equipmentName}`,
+        name: b.studentName
+      }));
+    }
+
+    return myActiveBookings.map(b => {
+      if (!b.returnTime || b.returnTime === 'ไม่ระบุ') return null;
+      try {
+        const [retHour, retMin] = b.returnTime.split(':').map(Number);
+        const currHour = currentTime.getHours();
+        const currMin = currentTime.getMinutes();
+        const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
+        
+        let alertType = 'safe';
+        let alertMsg = '';
+        if (diff < 0) {
+          alertType = 'danger';
+          alertMsg = `เลยกำหนดคืน (${b.equipmentName})`;
+          urgentCount++;
+        } else if (diff <= 30) {
+          alertType = 'warning';
+          alertMsg = `เหลือเวลา ${diff} นาที (${b.equipmentName})`;
+          urgentCount++;
+        }
+        
+        if (alertType !== 'safe') {
+          return { id: b.id, type: alertType, msg: alertMsg, name: b.equipmentName };
+        }
+      } catch (e) {}
+      return null;
+    }).filter(Boolean);
+  };
+  
+  const alerts = getBookingAlerts();
+
   // Helper to push a new activity log
-  const pushLog = async (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
+  const pushLog = (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
     const time = new Date();
     const timestampStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')} น.`;
-    const logId = `log-${Date.now()}`;
     const newLog: ActivityLog = {
-      id: logId,
+      id: `log-${Date.now()}`,
       timestamp: timestampStr,
       message,
       type
     };
-    try {
-      await setDoc(doc(db, 'logs', logId), newLog);
-    } catch (e) {
-      console.error('Error writing log to firestore: ', e);
-    }
+    setLogs((prev) => [...prev, newLog]);
   };
 
   // 1. Submit online booking (Pending state)
-  const handleSubmitBooking = async (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
+  const handleReportIssue = (bookingId: string, details: string) => {
+    setBookings(prev => prev.map(b => 
+      b.id === bookingId ? { ...b, issueReported: true, issueDetails: details, issueStatus: 'pending' } : b
+    ));
+    // Add log
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      const newLog: ActivityLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+        message: `${user?.name} รายงานปัญหา: ${details} (${booking.equipmentName})`,
+        type: 'maintenance'
+      };
+      setLogs(prev => [newLog, ...prev]);
+    }
+  };
+
+  const handleUpdateUserStatus = (userId: string, penaltyDelta: number, isBlacklisted: boolean) => {
+    setUsersDb(prev => {
+      const u = prev[userId] || { id: userId, name: 'Unknown', role: 'student', penaltyPoints: 0, isBlacklisted: false };
+      return {
+        ...prev,
+        [userId]: {
+          ...u,
+          penaltyPoints: Math.max(0, (u.penaltyPoints || 0) + penaltyDelta),
+          isBlacklisted
+        }
+      };
+    });
+  };
+
+  const handleSubmitBooking = (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
     const ticketCode = `SCI-${Math.floor(1000 + Math.random() * 9000)}`;
-    const bookingId = `booking-${Date.now()}`;
     const newBooking: Booking = {
       ...bookingData,
-      id: bookingId,
+      id: `booking-${Date.now()}`,
       ticketCode,
       createdAt: new Date().toLocaleTimeString('th-TH'),
       status: 'pending',
     };
 
-    try {
-      await setDoc(doc(db, 'bookings', bookingId), newBooking);
-      await pushLog(
-        `${bookingData.studentName} (${bookingData.studentId.substring(0, 3)}xxx) ได้จอง ${bookingData.equipmentName} จำนวน ${bookingData.quantity} ชิ้น`,
-        'booking'
-      );
-    } catch (e) {
-      console.error('Submit booking failed: ', e);
-    }
+    setBookings((prev) => [...prev, newBooking]);
+    
+    setUsersDb((prev) => {
+      if (!prev[bookingData.studentId]) {
+        return {
+          ...prev,
+          [bookingData.studentId]: {
+            id: bookingData.studentId,
+            name: bookingData.studentName,
+            role: 'student',
+            department: bookingData.department || 'ไม่ระบุ',
+            penaltyPoints: 0,
+            isBlacklisted: false
+          }
+        };
+      }
+      return prev;
+    });
+
+    pushLog(
+      `${bookingData.studentName} (${bookingData.studentId.substring(0, 3)}xxx) ได้จอง ${bookingData.equipmentName} จำนวน ${bookingData.quantity} ชิ้น`,
+      'booking'
+    );
   };
 
   // 2. Staff approves the booking (Approved state) -> Deducts availableStock
-  const handleApproveBooking = async (bookingId: string) => {
+  const handleApproveBooking = (bookingId: string) => {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
     // Deduct stock
-    const eq = equipment.find((e) => e.id === targetBooking.equipmentId);
-    if (!eq) return;
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === targetBooking.equipmentId) {
+          const nextStock = Math.max(0, eq.availableStock - targetBooking.quantity);
+          return {
+            ...eq,
+            availableStock: nextStock,
+            status: nextStock === 0 ? 'borrowed' : eq.status,
+          };
+        }
+        return eq;
+      })
+    );
 
-    const nextStock = Math.max(0, eq.availableStock - targetBooking.quantity);
-    const updatedEq = {
-      ...eq,
-      availableStock: nextStock,
-      status: (nextStock === 0 ? 'borrowed' : eq.status) as EquipmentStatus,
-    };
+    // Update booking status
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'approved' } : b))
+    );
 
-    try {
-      await setDoc(doc(db, 'equipment', eq.id), updatedEq);
-      await updateDoc(doc(db, 'bookings', bookingId), { status: 'approved' });
-      await pushLog(
-        `สตาฟฟ์อนุมัติคิวจอง ${targetBooking.ticketCode} (${targetBooking.equipmentName}) เรียบร้อยแล้ว`,
-        'booking'
-      );
-    } catch (e) {
-      console.error('Approve booking failed: ', e);
-    }
+    pushLog(
+      `สตาฟฟ์อนุมัติคิวจอง ${targetBooking.ticketCode} (${targetBooking.equipmentName}) เรียบร้อยแล้ว`,
+      'booking'
+    );
   };
 
   // 3. Staff hands over the physical item (Active/Borrowed state)
-  const handlePickupBooking = async (bookingId: string) => {
+  const handlePickupBooking = (bookingId: string) => {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
-    try {
-      await updateDoc(doc(db, 'bookings', bookingId), { status: 'active' });
-      await pushLog(
-        `${targetBooking.studentName} รับมอบ ${targetBooking.equipmentName} ออกนอกห้องสโมสรฯ แล้ว`,
-        'borrow'
-      );
-    } catch (e) {
-      console.error('Pickup booking failed: ', e);
-    }
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'active' } : b))
+    );
+
+    pushLog(
+      `${targetBooking.studentName} รับมอบ ${targetBooking.equipmentName} ออกนอกห้องสโมสรฯ แล้ว`,
+      'borrow'
+    );
   };
 
   // 4. Staff rejects the booking (Rejected state)
-  const handleRejectBooking = async (bookingId: string) => {
+  const handleRejectBooking = (bookingId: string) => {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
-    try {
-      await updateDoc(doc(db, 'bookings', bookingId), { status: 'rejected' });
-      await pushLog(`สตาฟฟ์ปฏิเสธคิวจอง ${targetBooking.ticketCode} ของ ${targetBooking.studentName}`, 'system');
-    } catch (e) {
-      console.error('Reject booking failed: ', e);
-    }
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'rejected' } : b))
+    );
+
+    pushLog(`สตาฟฟ์ปฏิเสธคิวจอง ${targetBooking.ticketCode} ของ ${targetBooking.studentName}`, 'system');
   };
 
   // 5. Staff processes item return (Returned state) -> Adds back to stock
-  const handleReturnBooking = async (bookingId: string) => {
+  const handleReturnBooking = (bookingId: string) => {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
     // Restore stock
-    const eq = equipment.find((e) => e.id === targetBooking.equipmentId);
-    if (!eq) return;
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === targetBooking.equipmentId) {
+          const nextStock = Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity);
+          return {
+            ...eq,
+            availableStock: nextStock,
+            status: 'available', // Reset status as items are available again
+          };
+        }
+        return eq;
+      })
+    );
 
-    const nextStock = Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity);
-    const updatedEq = {
-      ...eq,
-      availableStock: nextStock,
-      status: 'available' as EquipmentStatus,
-    };
+    // Update booking status
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'returned' } : b))
+    );
 
-    try {
-      await setDoc(doc(db, 'equipment', eq.id), updatedEq);
-      await updateDoc(doc(db, 'bookings', bookingId), { status: 'returned' });
-      await pushLog(
-        `ได้รับคืน ${targetBooking.equipmentName} (${targetBooking.quantity} ชิ้น) จาก ${targetBooking.studentName} สต็อกอัพเดทแล้ว`,
-        'return'
-      );
-    } catch (e) {
-      console.error('Return booking failed: ', e);
-    }
+    pushLog(
+      `ได้รับคืน ${targetBooking.equipmentName} (${targetBooking.quantity} ชิ้น) จาก ${targetBooking.studentName} สต็อกอัพเดทแล้ว`,
+      'return'
+    );
   };
 
   // 6. User cancels their booking
-  const handleCancelBooking = async (bookingId: string) => {
+  const handleCancelBooking = (bookingId: string) => {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
-    try {
-      // If already approved, return the stock back to catalog
-      if (targetBooking.status === 'approved') {
-        const eq = equipment.find((e) => e.id === targetBooking.equipmentId);
-        if (eq) {
-          const nextStock = Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity);
-          await updateDoc(doc(db, 'equipment', eq.id), { availableStock: nextStock });
-        }
-      }
-
-      await deleteDoc(doc(db, 'bookings', bookingId));
-      await pushLog(`ผู้ใช้ยกเลิกคิวจองหมายเลข ${targetBooking.ticketCode} ด้วยตัวเอง`, 'system');
-    } catch (e) {
-      console.error('Cancel booking failed: ', e);
+    // If already approved, return the stock back to catalog
+    if (targetBooking.status === 'approved') {
+      setEquipment((prevEq) =>
+        prevEq.map((eq) => {
+          if (eq.id === targetBooking.equipmentId) {
+            return {
+              ...eq,
+              availableStock: Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity),
+            };
+          }
+          return eq;
+        })
+      );
     }
+
+    setBookings((prevBookings) => prevBookings.filter((b) => b.id !== bookingId));
+    pushLog(`ผู้ใช้ยกเลิกคิวจองหมายเลข ${targetBooking.ticketCode} ด้วยตัวเอง`, 'system');
   };
 
-  const handleUpdateEquipmentStock = async (equipmentId: string, newTotal: number) => {
-    const eq = equipment.find((e) => e.id === equipmentId);
-    if (!eq) return;
-
-    const diff = newTotal - eq.totalStock;
-    const nextAvailable = Math.max(0, eq.availableStock + diff);
-
-    try {
-      await updateDoc(doc(db, 'equipment', equipmentId), {
-        totalStock: newTotal,
-        availableStock: nextAvailable
-      });
-      await pushLog(`สตาฟฟ์อัพเดทสต็อกอุปกรณ์สำเร็จ`, 'system');
-    } catch (e) {
-      console.error('Update stock failed: ', e);
-    }
+  const handleUpdateEquipmentStock = (equipmentId: string, newTotal: number) => {
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === equipmentId) {
+          const diff = newTotal - eq.totalStock;
+          return {
+            ...eq,
+            totalStock: newTotal,
+            availableStock: Math.max(0, eq.availableStock + diff)
+          };
+        }
+        return eq;
+      })
+    );
+    pushLog(`สตาฟฟ์อัพเดทสต็อกอุปกรณ์สำเร็จ`, 'system');
   };
 
   // 7. Toggle maintenance mode of equipment
-  const handleToggleMaintenance = async (equipmentId: string) => {
-    const eq = equipment.find((e) => e.id === equipmentId);
-    if (!eq) return;
-
-    const isNowMaint = eq.status !== 'maintenance';
-    try {
-      if (isNowMaint) {
-        await updateDoc(doc(db, 'equipment', equipmentId), {
-          status: 'maintenance',
-          availableStock: 0
-        });
-        await pushLog(`สตาฟฟ์นำ ${eq.thaiName} เข้าสู่โหมดส่งซ่อมบำรุงชั่วคราว`, 'maintenance');
-      } else {
-        await updateDoc(doc(db, 'equipment', equipmentId), {
-          status: 'available',
-          availableStock: eq.totalStock
-        });
-        await pushLog(`นำ ${eq.thaiName} กลับมาเปิดให้บริการตามปกติ`, 'system');
-      }
-    } catch (e) {
-      console.error('Toggle maintenance failed: ', e);
-    }
+  const handleToggleMaintenance = (equipmentId: string) => {
+    setEquipment((prevEq) =>
+      prevEq.map((eq) => {
+        if (eq.id === equipmentId) {
+          const isNowMaint = eq.status !== 'maintenance';
+          
+          if (isNowMaint) {
+            pushLog(`สตาฟฟ์นำ ${eq.thaiName} เข้าสู่โหมดส่งซ่อมบำรุงชั่วคราว`, 'maintenance');
+            return {
+              ...eq,
+              status: 'maintenance',
+              availableStock: 0 // Cannot borrow during maintenance
+            };
+          } else {
+            pushLog(`นำ ${eq.thaiName} กลับมาเปิดให้บริการตามปกติ`, 'system');
+            return {
+              ...eq,
+              status: 'available',
+              availableStock: eq.totalStock // Recover original stock
+            };
+          }
+        }
+        return eq;
+      })
+    );
   };
 
   // Action helper when user clicks book online from a card
@@ -292,7 +355,24 @@ export default function App() {
       <LoginView
         onBack={() => setViewMode('landing')}
         onLogin={(usr) => {
-          setUser(usr);
+          setUser(usr as User);
+          setUsersDb((prev) => {
+            if (!prev[usr.id]) {
+              return {
+                ...prev,
+                [usr.id]: {
+                  id: usr.id,
+                  name: usr.name,
+                  role: usr.role,
+                  department: usr.department || 'ไม่ระบุ',
+                  penaltyPoints: 0,
+                  isBlacklisted: false
+                }
+              };
+            }
+            return prev;
+          });
+          setActiveTab('catalog');
           setViewMode('app');
           pushLog(`เข้าสู่ระบบในฐานะ ${usr.role === 'staff' ? 'สตาฟฟ์สโมสรฯ' : 'นักศึกษา'}: ${usr.name} (${usr.id}) สำเร็จ`, 'system');
         }}
@@ -317,7 +397,6 @@ export default function App() {
                 <h1 className="text-sm font-extrabold text-gray-900 tracking-tight flex items-center gap-1">
                   SCI-SPORTS
                   <span className="text-[10px] bg-emerald-50 text-[#397d54] border border-emerald-100 px-1.5 py-0.5 rounded-full font-black">สโมสรนักศึกษา</span>
-                  <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full font-mono font-bold">v0.5</span>
                 </h1>
                 <p className="text-[10px] text-gray-500 font-semibold tracking-wide">คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร</p>
               </div>
@@ -357,6 +436,66 @@ export default function App() {
                 )}
               </nav>
 
+              {/* Notifications Widget */}
+              <div className="relative">
+                <button
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all relative ${notificationsOpen ? 'bg-rose-50 text-rose-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+                  title={t('การแจ้งเตือน', 'Notifications')}
+                >
+                  <Bell size={18} />
+                  {urgentCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse border-2 border-white"></span>
+                  )}
+                </button>
+                {/* Dropdown */}
+                {notificationsOpen && <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)}></div>}
+                <AnimatePresence>
+                {notificationsOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden origin-top-right"
+                    >
+                      <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <h4 className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                          <Bell size={14} className="text-rose-500" />
+                          การแจ้งเตือนอุปกรณ์
+                        </h4>
+                        <span className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded-md font-bold text-gray-500">{alerts.length}</span>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+                        {alerts.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400">
+                            <Check size={24} className="mx-auto mb-2 opacity-30" />
+                            <p className="text-xs font-bold text-gray-500">ไม่มีการแจ้งเตือน</p>
+                          </div>
+                        ) : (
+                          alerts.map((al: any) => (
+                            <div key={al.id} className={`p-3 rounded-xl border flex gap-3 items-start ${al.type === 'danger' ? 'bg-rose-50/80 border-rose-100' : 'bg-amber-50/80 border-amber-100'}`}>
+                              <div className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm ${al.type === 'danger' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                                <AlertCircle size={14} />
+                              </div>
+                              <div className="flex-1">
+                                <p className={`text-[13px] font-black leading-tight ${al.type === 'danger' ? 'text-rose-700' : 'text-amber-700'}`}>{al.name}</p>
+                                <p className={`text-[11px] mt-0.5 font-bold ${al.type === 'danger' ? 'text-rose-600' : 'text-amber-600'}`}>{al.msg}</p>
+                                <button 
+                                  className="text-[10px] bg-white text-gray-600 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2 py-1 rounded shadow-sm"
+                                  onClick={() => { setActiveTab(user?.role === 'staff' ? 'admin' : 'profile'); setNotificationsOpen(false); }}
+                                >
+                                  {user?.role === 'staff' ? 'ดูรายละเอียดในระบบจัดการ' : 'ดูรายละเอียดในโปรไฟล์'} &rarr;
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                )}
+                </AnimatePresence>
+              </div>
+
               <button
                 onClick={() => {
                   playPop();
@@ -388,6 +527,7 @@ export default function App() {
                     e.stopPropagation();
                     pushLog(`ผู้ใช้ ${user.name} ลงชื่อออกจากระบบ`, 'system');
                     setUser(null);
+                    setActiveTab('catalog');
                     setViewMode('landing');
                   }}
                   className="p-1 text-emerald-800 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition ml-1"
@@ -431,6 +571,7 @@ export default function App() {
                   bookings={bookings}
                   onNavigateCatalog={() => setActiveTab('catalog')}
                   onCancelBooking={handleCancelBooking}
+                  onReportIssue={handleReportIssue}
                 />
               </motion.div>
             )}
@@ -502,6 +643,7 @@ export default function App() {
                         onClick={() => {
                           pushLog(`ผู้ใช้ลงชื่อออกจากระบบเพื่อสลับบัญชี`, 'system');
                           setUser(null);
+                          setActiveTab('catalog');
                         }}
                         className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
                         id="logout-back-to-login"
@@ -512,6 +654,11 @@ export default function App() {
                   </div>
                 ) : (
                   <AdminPanel
+                  usersDb={Object.values(usersDb)}
+                  onUpdateUserStatus={handleUpdateUserStatus}
+                  onResolveIssue={(bookingId) => {
+                    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, issueStatus: 'resolved' } : b));
+                  }}
                     bookings={bookings}
                     equipment={equipment}
                     onApproveBooking={handleApproveBooking}
@@ -583,18 +730,22 @@ export default function App() {
                 </button>
               </div>
               <div className="p-4 space-y-3">
-                 <a 
-                   href="https://www.facebook.com/profile.php?id=100063495553443" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100"
-                 >
+                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100">
                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                        <Bell size={18} />
                     </div>
                     <div>
                        <p className="text-xs font-bold text-gray-800">Facebook Page</p>
                        <p className="text-[10px] text-gray-500">สโมสรนักศึกษา คณะวิทย์ฯ</p>
+                    </div>
+                 </a>
+                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-green-100">
+                    <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                       <Radio size={18} />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-gray-800">Line Official</p>
+                       <p className="text-[10px] text-gray-500">@scisports_pnru</p>
                     </div>
                  </a>
               </div>
