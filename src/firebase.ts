@@ -1,18 +1,19 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import config from '../firebase-applet-config.json';
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: config.apiKey,
-  authDomain: config.authDomain,
-  projectId: config.projectId,
-  storageBucket: config.storageBucket,
-  messagingSenderId: config.messagingSenderId,
-  appId: config.appId,
+  projectId: "borrow-system-test",
+  appId: "1:186042421844:web:9fdc88a0851933071413c1",
+  apiKey: "AIzaSyDbIKwuHWGXFRoBINrnV_upzKtGZJw5Km8",
+  authDomain: "borrow-system-test.firebaseapp.com",
+  storageBucket: "borrow-system-test.firebasestorage.app",
+  messagingSenderId: "186042421844",
+  measurementId: "G-3Y4721YGB8"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore with custom database ID from config
-export const db = getFirestore(app, config.firestoreDatabaseId || '(default)');
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);

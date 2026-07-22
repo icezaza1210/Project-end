@@ -1,3 +1,4 @@
+import { seedDatabase, listenEquipment, listenBookings, listenLogs, listenUsers, pushLogDb, updateBookingDb, addBookingDb, deleteBookingDb, updateEquipmentDb, updateUserDb, addUserDb } from "./lib/db";
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from './data';
@@ -22,28 +23,10 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   
   // New States for Penalties & Issues
-  const [usersDb, setUsersDb] = useState<Record<string, User>>({
-    '660510999': { id: '660510999', name: 'ณัฐพงษ์ ยอดวิทยา', role: 'student', department: 'วิทยาการคอมพิวเตอร์', penaltyPoints: 0, isBlacklisted: false },
-    'STAFF-MAIN': { id: 'STAFF-MAIN', name: 'สตาฟฟ์สโมสรฯ', role: 'staff', department: 'ส่วนกลาง', penaltyPoints: 0, isBlacklisted: false }
-  });
-  const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 'mock-booking-1',
-      studentName: 'ณัฐพงษ์ ยอดวิทยา',
-      studentId: '660510999',
-      department: 'วิทยาการคอมพิวเตอร์',
-      equipmentId: 'eq-1',
-      equipmentName: 'Football',
-      quantity: 1,
-      borrowTime: '10:00',
-      returnTime: '16:00',
-      status: 'active',
-      ticketCode: 'TK-1234',
-      createdAt: new Date().toLocaleDateString('th-TH')
-    }
-  ]);
-  const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
+  const [usersDb, setUsersDb] = useState<Record<string, User>>({});
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -53,7 +36,19 @@ export default function App() {
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
+    seedDatabase();
+    const unsubUsers = listenUsers(setUsersDb);
+    const unsubEq = listenEquipment(setEquipment);
+    const unsubBookings = listenBookings(setBookings);
+    const unsubLogs = listenLogs(setLogs);
+    
+    return () => {
+      clearInterval(timer);
+      unsubUsers();
+      unsubEq();
+      unsubBookings();
+      unsubLogs();
+    };
   }, []);
 
   // Notifications Logic
@@ -104,46 +99,24 @@ export default function App() {
 
   // Helper to push a new activity log
   const pushLog = (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
-    const time = new Date();
-    const timestampStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')} น.`;
-    const newLog: ActivityLog = {
-      id: `log-${Date.now()}`,
-      timestamp: timestampStr,
-      message,
-      type
-    };
-    setLogs((prev) => [...prev, newLog]);
+    pushLogDb(message, type);
   };
 
   // 1. Submit online booking (Pending state)
   const handleReportIssue = (bookingId: string, details: string) => {
-    setBookings(prev => prev.map(b => 
-      b.id === bookingId ? { ...b, issueReported: true, issueDetails: details, issueStatus: 'pending' } : b
-    ));
+    updateBookingDb(bookingId, { issueReported: true, issueDetails: details, issueStatus: 'pending' });
     // Add log
     const booking = bookings.find(b => b.id === bookingId);
     if (booking) {
-      const newLog: ActivityLog = {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
-        message: `${user?.name} รายงานปัญหา: ${details} (${booking.equipmentName})`,
-        type: 'maintenance'
-      };
-      setLogs(prev => [newLog, ...prev]);
+      pushLog(`${user?.name} รายงานปัญหา: ${details} (${booking.equipmentName})`, 'maintenance');
     }
   };
 
   const handleUpdateUserStatus = (userId: string, penaltyDelta: number, isBlacklisted: boolean) => {
-    setUsersDb(prev => {
-      const u = prev[userId] || { id: userId, name: 'Unknown', role: 'student', penaltyPoints: 0, isBlacklisted: false };
-      return {
-        ...prev,
-        [userId]: {
-          ...u,
-          penaltyPoints: Math.max(0, (u.penaltyPoints || 0) + penaltyDelta),
-          isBlacklisted
-        }
-      };
+    const u = usersDb[userId] || { id: userId, name: 'Unknown', role: 'student', penaltyPoints: 0, isBlacklisted: false };
+    updateUserDb(userId, {
+      penaltyPoints: Math.max(0, (u.penaltyPoints || 0) + penaltyDelta),
+      isBlacklisted
     });
   };
 
@@ -157,24 +130,18 @@ export default function App() {
       status: 'pending',
     };
 
-    setBookings((prev) => [...prev, newBooking]);
+    addBookingDb(newBooking);
     
-    setUsersDb((prev) => {
-      if (!prev[bookingData.studentId]) {
-        return {
-          ...prev,
-          [bookingData.studentId]: {
-            id: bookingData.studentId,
-            name: bookingData.studentName,
-            role: 'student',
-            department: bookingData.department || 'ไม่ระบุ',
-            penaltyPoints: 0,
-            isBlacklisted: false
-          }
-        };
-      }
-      return prev;
-    });
+    if (!usersDb[bookingData.studentId]) {
+      addUserDb({
+        id: bookingData.studentId,
+        name: bookingData.studentName,
+        role: 'student',
+        department: bookingData.department || 'ไม่ระบุ',
+        penaltyPoints: 0,
+        isBlacklisted: false
+      });
+    }
 
     pushLog(
       `${bookingData.studentName} (${bookingData.studentId.substring(0, 3)}xxx) ได้จอง ${bookingData.equipmentName} จำนวน ${bookingData.quantity} ชิ้น`,
@@ -188,24 +155,17 @@ export default function App() {
     if (!targetBooking) return;
 
     // Deduct stock
-    setEquipment((prevEq) =>
-      prevEq.map((eq) => {
-        if (eq.id === targetBooking.equipmentId) {
-          const nextStock = Math.max(0, eq.availableStock - targetBooking.quantity);
-          return {
-            ...eq,
-            availableStock: nextStock,
-            status: nextStock === 0 ? 'borrowed' : eq.status,
-          };
-        }
-        return eq;
-      })
-    );
+    const eq = equipment.find(e => e.id === targetBooking.equipmentId);
+    if (eq) {
+      const nextStock = Math.max(0, eq.availableStock - targetBooking.quantity);
+      updateEquipmentDb(eq.id, {
+        availableStock: nextStock,
+        status: nextStock === 0 ? 'borrowed' : eq.status,
+      });
+    }
 
     // Update booking status
-    setBookings((prevBookings) =>
-      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'approved' } : b))
-    );
+    updateBookingDb(bookingId, { status: 'approved' });
 
     pushLog(
       `สตาฟฟ์อนุมัติคิวจอง ${targetBooking.ticketCode} (${targetBooking.equipmentName}) เรียบร้อยแล้ว`,
@@ -218,9 +178,7 @@ export default function App() {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
-    setBookings((prevBookings) =>
-      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'active' } : b))
-    );
+    updateBookingDb(bookingId, { status: 'active' });
 
     pushLog(
       `${targetBooking.studentName} รับมอบ ${targetBooking.equipmentName} ออกนอกห้องสโมสรฯ แล้ว`,
@@ -233,9 +191,7 @@ export default function App() {
     const targetBooking = bookings.find((b) => b.id === bookingId);
     if (!targetBooking) return;
 
-    setBookings((prevBookings) =>
-      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'rejected' } : b))
-    );
+    updateBookingDb(bookingId, { status: 'rejected' });
 
     pushLog(`สตาฟฟ์ปฏิเสธคิวจอง ${targetBooking.ticketCode} ของ ${targetBooking.studentName}`, 'system');
   };
@@ -246,24 +202,17 @@ export default function App() {
     if (!targetBooking) return;
 
     // Restore stock
-    setEquipment((prevEq) =>
-      prevEq.map((eq) => {
-        if (eq.id === targetBooking.equipmentId) {
-          const nextStock = Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity);
-          return {
-            ...eq,
-            availableStock: nextStock,
-            status: 'available', // Reset status as items are available again
-          };
-        }
-        return eq;
-      })
-    );
+    const eq = equipment.find(e => e.id === targetBooking.equipmentId);
+    if (eq) {
+      const nextStock = Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity);
+      updateEquipmentDb(eq.id, {
+        availableStock: nextStock,
+        status: 'available', // Reset status as items are available again
+      });
+    }
 
     // Update booking status
-    setBookings((prevBookings) =>
-      prevBookings.map((b) => (b.id === bookingId ? { ...b, status: 'returned' } : b))
-    );
+    updateBookingDb(bookingId, { status: 'returned' });
 
     pushLog(
       `ได้รับคืน ${targetBooking.equipmentName} (${targetBooking.quantity} ชิ้น) จาก ${targetBooking.studentName} สต็อกอัพเดทแล้ว`,
@@ -278,66 +227,50 @@ export default function App() {
 
     // If already approved, return the stock back to catalog
     if (targetBooking.status === 'approved') {
-      setEquipment((prevEq) =>
-        prevEq.map((eq) => {
-          if (eq.id === targetBooking.equipmentId) {
-            return {
-              ...eq,
-              availableStock: Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity),
-            };
-          }
-          return eq;
-        })
-      );
+      const eq = equipment.find(e => e.id === targetBooking.equipmentId);
+      if (eq) {
+        updateEquipmentDb(eq.id, {
+          availableStock: Math.min(eq.totalStock, eq.availableStock + targetBooking.quantity),
+        });
+      }
     }
 
-    setBookings((prevBookings) => prevBookings.filter((b) => b.id !== bookingId));
+    deleteBookingDb(bookingId);
     pushLog(`ผู้ใช้ยกเลิกคิวจองหมายเลข ${targetBooking.ticketCode} ด้วยตัวเอง`, 'system');
   };
 
   const handleUpdateEquipmentStock = (equipmentId: string, newTotal: number) => {
-    setEquipment((prevEq) =>
-      prevEq.map((eq) => {
-        if (eq.id === equipmentId) {
-          const diff = newTotal - eq.totalStock;
-          return {
-            ...eq,
-            totalStock: newTotal,
-            availableStock: Math.max(0, eq.availableStock + diff)
-          };
-        }
-        return eq;
-      })
-    );
+    const eq = equipment.find(e => e.id === equipmentId);
+    if (eq) {
+      const diff = newTotal - eq.totalStock;
+      updateEquipmentDb(equipmentId, {
+        totalStock: newTotal,
+        availableStock: Math.max(0, eq.availableStock + diff)
+      });
+    }
     pushLog(`สตาฟฟ์อัพเดทสต็อกอุปกรณ์สำเร็จ`, 'system');
   };
 
   // 7. Toggle maintenance mode of equipment
   const handleToggleMaintenance = (equipmentId: string) => {
-    setEquipment((prevEq) =>
-      prevEq.map((eq) => {
-        if (eq.id === equipmentId) {
-          const isNowMaint = eq.status !== 'maintenance';
-          
-          if (isNowMaint) {
-            pushLog(`สตาฟฟ์นำ ${eq.thaiName} เข้าสู่โหมดส่งซ่อมบำรุงชั่วคราว`, 'maintenance');
-            return {
-              ...eq,
-              status: 'maintenance',
-              availableStock: 0 // Cannot borrow during maintenance
-            };
-          } else {
-            pushLog(`นำ ${eq.thaiName} กลับมาเปิดให้บริการตามปกติ`, 'system');
-            return {
-              ...eq,
-              status: 'available',
-              availableStock: eq.totalStock // Recover original stock
-            };
-          }
-        }
-        return eq;
-      })
-    );
+    const eq = equipment.find(e => e.id === equipmentId);
+    if (eq) {
+      const isNowMaint = eq.status !== 'maintenance';
+      
+      if (isNowMaint) {
+        pushLog(`สตาฟฟ์นำ ${eq.thaiName} เข้าสู่โหมดส่งซ่อมบำรุงชั่วคราว`, 'maintenance');
+        updateEquipmentDb(equipmentId, {
+          status: 'maintenance',
+          availableStock: 0 // Cannot borrow during maintenance
+        });
+      } else {
+        pushLog(`นำ ${eq.thaiName} กลับมาเปิดให้บริการตามปกติ`, 'system');
+        updateEquipmentDb(equipmentId, {
+          status: 'available',
+          availableStock: eq.totalStock // Recover original stock
+        });
+      }
+    }
   };
 
   // Action helper when user clicks book online from a card
@@ -356,22 +289,16 @@ export default function App() {
         onBack={() => setViewMode('landing')}
         onLogin={(usr) => {
           setUser(usr as User);
-          setUsersDb((prev) => {
-            if (!prev[usr.id]) {
-              return {
-                ...prev,
-                [usr.id]: {
-                  id: usr.id,
-                  name: usr.name,
-                  role: usr.role,
-                  department: usr.department || 'ไม่ระบุ',
-                  penaltyPoints: 0,
-                  isBlacklisted: false
-                }
-              };
-            }
-            return prev;
-          });
+          if (!usersDb[usr.id]) {
+            addUserDb({
+              id: usr.id,
+              name: usr.name,
+              role: usr.role,
+              department: usr.department || 'ไม่ระบุ',
+              penaltyPoints: 0,
+              isBlacklisted: false
+            });
+          }
           setActiveTab('catalog');
           setViewMode('app');
           pushLog(`เข้าสู่ระบบในฐานะ ${usr.role === 'staff' ? 'สตาฟฟ์สโมสรฯ' : 'นักศึกษา'}: ${usr.name} (${usr.id}) สำเร็จ`, 'system');
@@ -657,7 +584,7 @@ export default function App() {
                   usersDb={Object.values(usersDb)}
                   onUpdateUserStatus={handleUpdateUserStatus}
                   onResolveIssue={(bookingId) => {
-                    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, issueStatus: 'resolved' } : b));
+                    updateBookingDb(bookingId, { issueStatus: 'resolved' });
                   }}
                     bookings={bookings}
                     equipment={equipment}
