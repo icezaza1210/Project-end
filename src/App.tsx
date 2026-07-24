@@ -13,7 +13,7 @@ import SettingsModal from './components/SettingsModal';
 import StudentProfile from './components/StudentProfile';
 import HeroBanner from './components/HeroBanner';
 import { useSettings } from './contexts/SettingsContext';
-import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio, Megaphone, Check } from 'lucide-react';
+import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio, Megaphone, Check, CheckCircle2, Info } from 'lucide-react';
 
 export default function App() {
   const { t, setIsSettingsOpen, playPop } = useSettings();
@@ -32,6 +32,7 @@ export default function App() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -52,50 +53,138 @@ export default function App() {
   }, []);
 
   // Notifications Logic
-  const myActiveBookings = bookings.filter(b => b.studentId === user?.id && b.status === 'active');
-  let urgentCount = 0;
-  
   const getBookingAlerts = () => {
+    let count = 0;
+    const alertList: { id: string; type: 'danger' | 'warning' | 'success' | 'info'; name: string; msg: string; time?: string }[] = [];
+
     if (user?.role === 'staff') {
       const pendingBookings = bookings.filter(b => b.status === 'pending');
-      urgentCount += pendingBookings.length;
-      return pendingBookings.map(b => ({
-        id: b.id,
-        type: 'warning',
-        msg: `รอการอนุมัติ: ${b.equipmentName}`,
-        name: b.studentName
-      }));
+      count += pendingBookings.length;
+      pendingBookings.forEach(b => {
+        alertList.push({
+          id: `pending-${b.id}`,
+          type: 'warning',
+          name: `รออนุมัติ: ${b.studentName}`,
+          msg: `ยืม ${b.equipmentName} (${b.quantity} ชิ้น) • รหัสตั๋ว ${b.ticketCode}`,
+          time: b.createdAt
+        });
+      });
+
+      const issueReports = bookings.filter(b => b.issueReported && b.issueStatus === 'pending');
+      count += issueReports.length;
+      issueReports.forEach(b => {
+        alertList.push({
+          id: `issue-${b.id}`,
+          type: 'danger',
+          name: `รายงานปัญหาจาก ${b.studentName}`,
+          msg: `${b.equipmentName}: ${b.issueDetails || 'ชำรุด/เสียหาย'}`
+        });
+      });
+
+      return { alerts: alertList, urgentCount: count };
     }
 
-    return myActiveBookings.map(b => {
-      if (!b.returnTime || b.returnTime === 'ไม่ระบุ') return null;
-      try {
-        const [retHour, retMin] = b.returnTime.split(':').map(Number);
-        const currHour = currentTime.getHours();
-        const currMin = currentTime.getMinutes();
-        const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
-        
-        let alertType = 'safe';
-        let alertMsg = '';
-        if (diff < 0) {
-          alertType = 'danger';
-          alertMsg = `เลยกำหนดคืน (${b.equipmentName})`;
-          urgentCount++;
-        } else if (diff <= 30) {
-          alertType = 'warning';
-          alertMsg = `เหลือเวลา ${diff} นาที (${b.equipmentName})`;
-          urgentCount++;
+    // Student Notifications
+    const userData = user ? (usersDb[user.id] || user) : null;
+
+    if (userData?.isBlacklisted) {
+      count++;
+      alertList.push({
+        id: 'user-blacklist',
+        type: 'danger',
+        name: 'แจ้งเตือนสถานะบัญชี',
+        msg: 'บัญชีของคุณถูกระงับสิทธิ์การยืมอุปกรณ์ (Blacklisted)'
+      });
+    } else if ((userData?.penaltyPoints || 0) > 0) {
+      alertList.push({
+        id: 'user-penalty',
+        type: 'warning',
+        name: 'คะแนนความประพฤติ',
+        msg: `คุณถูกหักคะแนนความประพฤติรวม ${userData?.penaltyPoints} คะแนน`
+      });
+    }
+
+    const myBookings = bookings.filter(b => b.studentId === user?.id || (user?.id && b.studentId === user.id));
+
+    myBookings.forEach(b => {
+      if (b.status === 'approved') {
+        count++;
+        alertList.push({
+          id: `approved-${b.id}`,
+          type: 'success',
+          name: `อนุมัติการจองแล้ว! (${b.equipmentName})`,
+          msg: `รหัสตั๋ว ${b.ticketCode} • สตาฟฟ์อนุมัติคิวจองแล้ว สามารถมารับอุปกรณ์ได้ที่ห้องสโมสรฯ`,
+          time: b.createdAt
+        });
+      } else if (b.status === 'rejected') {
+        count++;
+        alertList.push({
+          id: `rejected-${b.id}`,
+          type: 'danger',
+          name: `คำขอจองถูกปฏิเสธ (${b.equipmentName})`,
+          msg: `รหัสตั๋ว ${b.ticketCode} • สตาฟฟ์ไม่อนุมัติคิวจองนี้`,
+          time: b.createdAt
+        });
+      } else if (b.status === 'active') {
+        let isUrgent = false;
+        let alertType: 'danger' | 'warning' | 'info' = 'info';
+        let alertMsg = `รหัสตั๋ว ${b.ticketCode} • รับอุปกรณ์แล้ว กำลังใช้งาน`;
+
+        if (b.returnTime && b.returnTime !== 'ไม่ระบุ') {
+          try {
+            const [retHour, retMin] = b.returnTime.split(':').map(Number);
+            const currHour = currentTime.getHours();
+            const currMin = currentTime.getMinutes();
+            const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
+
+            if (diff < 0) {
+              alertType = 'danger';
+              alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
+              isUrgent = true;
+            } else if (diff <= 30) {
+              alertType = 'warning';
+              alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
+              isUrgent = true;
+            } else {
+              alertType = 'info';
+              alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
+            }
+          } catch (e) {}
         }
-        
-        if (alertType !== 'safe') {
-          return { id: b.id, type: alertType, msg: alertMsg, name: b.equipmentName };
-        }
-      } catch (e) {}
-      return null;
-    }).filter(Boolean);
+
+        if (isUrgent) count++;
+        alertList.push({
+          id: `active-${b.id}`,
+          type: alertType,
+          name: alertType === 'danger' ? `เลยกำหนดคืน! (${b.equipmentName})` : alertType === 'warning' ? `ใกล้ถึงกำหนดคืน (${b.equipmentName})` : `กำลังยืมใช้งาน (${b.equipmentName})`,
+          msg: alertMsg
+        });
+      } else if (b.status === 'pending') {
+        alertList.push({
+          id: `pending-${b.id}`,
+          type: 'warning',
+          name: `กำลังรอสตาฟฟ์อนุมัติ (${b.equipmentName})`,
+          msg: `รหัสตั๋ว ${b.ticketCode} • ส่งคำขอจองแล้ว อยู่ระหว่างรอสตาฟฟ์ตรวจสอบ`,
+          time: b.createdAt
+        });
+      }
+
+      if (b.issueReported && b.issueStatus === 'resolved') {
+        alertList.push({
+          id: `resolved-${b.id}`,
+          type: 'success',
+          name: `รายงานปัญหาได้รับการแก้ไข`,
+          msg: `รายงานอุปกรณ์ ${b.equipmentName} ได้รับการตรวจสอบและแก้ไขแล้ว`
+        });
+      }
+    });
+
+    return { alerts: alertList, urgentCount: count };
   };
-  
-  const alerts = getBookingAlerts();
+
+  const { alerts, urgentCount } = getBookingAlerts();
+  const unreadAlerts = alerts.filter(al => !readNotificationIds.includes(al.id));
+  const unreadCount = unreadAlerts.length;
 
   // Helper to push a new activity log
   const pushLog = (message: string, type: 'booking' | 'borrow' | 'return' | 'maintenance' | 'system') => {
@@ -366,13 +455,21 @@ export default function App() {
               {/* Notifications Widget */}
               <div className="relative">
                 <button
-                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  onClick={() => {
+                    if (!notificationsOpen) {
+                      setReadNotificationIds(prev => Array.from(new Set([...prev, ...alerts.map(a => a.id)])));
+                    }
+                    setNotificationsOpen(!notificationsOpen);
+                  }}
                   className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all relative ${notificationsOpen ? 'bg-rose-50 text-rose-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
                   title={t('การแจ้งเตือน', 'Notifications')}
+                  id="btn-notifications-bell"
                 >
                   <Bell size={18} />
-                  {urgentCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse border-2 border-white"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
                   )}
                 </button>
                 {/* Dropdown */}
@@ -399,23 +496,52 @@ export default function App() {
                             <p className="text-xs font-bold text-gray-500">ไม่มีการแจ้งเตือน</p>
                           </div>
                         ) : (
-                          alerts.map((al: any) => (
-                            <div key={al.id} className={`p-3 rounded-xl border flex gap-3 items-start ${al.type === 'danger' ? 'bg-rose-50/80 border-rose-100' : 'bg-amber-50/80 border-amber-100'}`}>
-                              <div className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm ${al.type === 'danger' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
-                                <AlertCircle size={14} />
+                          alerts.map((al) => {
+                            const bgStyle =
+                              al.type === 'danger' ? 'bg-rose-50/90 border-rose-100' :
+                              al.type === 'warning' ? 'bg-amber-50/90 border-amber-100' :
+                              al.type === 'success' ? 'bg-emerald-50/90 border-emerald-100' :
+                              'bg-blue-50/90 border-blue-100';
+
+                            const iconBg =
+                              al.type === 'danger' ? 'bg-rose-100 text-rose-600' :
+                              al.type === 'warning' ? 'bg-amber-100 text-amber-600' :
+                              al.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
+                              'bg-blue-100 text-blue-600';
+
+                            const titleColor =
+                              al.type === 'danger' ? 'text-rose-800' :
+                              al.type === 'warning' ? 'text-amber-900' :
+                              al.type === 'success' ? 'text-emerald-900' :
+                              'text-blue-900';
+
+                            const textColor =
+                              al.type === 'danger' ? 'text-rose-600' :
+                              al.type === 'warning' ? 'text-amber-700' :
+                              al.type === 'success' ? 'text-emerald-700' :
+                              'text-blue-700';
+
+                            return (
+                              <div key={al.id} className={`p-3 rounded-xl border flex gap-3 items-start transition-all hover:scale-[1.01] ${bgStyle}`}>
+                                <div className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm ${iconBg}`}>
+                                  {al.type === 'danger' && <AlertCircle size={14} />}
+                                  {al.type === 'warning' && <AlertCircle size={14} />}
+                                  {al.type === 'success' && <CheckCircle2 size={14} />}
+                                  {al.type === 'info' && <Info size={14} />}
+                                </div>
+                                <div className="flex-1">
+                                  <p className={`text-[12px] font-black leading-tight ${titleColor}`}>{al.name}</p>
+                                  <p className={`text-[11px] mt-0.5 font-medium leading-relaxed ${textColor}`}>{al.msg}</p>
+                                  <button 
+                                    className="text-[10px] bg-white text-gray-700 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1"
+                                    onClick={() => { setActiveTab(user?.role === 'staff' ? 'admin' : 'profile'); setNotificationsOpen(false); }}
+                                  >
+                                    {user?.role === 'staff' ? 'ดูรายละเอียดในระบบจัดการ' : 'ดูรายละเอียดในโปรไฟล์'} &rarr;
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <p className={`text-[13px] font-black leading-tight ${al.type === 'danger' ? 'text-rose-700' : 'text-amber-700'}`}>{al.name}</p>
-                                <p className={`text-[11px] mt-0.5 font-bold ${al.type === 'danger' ? 'text-rose-600' : 'text-amber-600'}`}>{al.msg}</p>
-                                <button 
-                                  className="text-[10px] bg-white text-gray-600 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2 py-1 rounded shadow-sm"
-                                  onClick={() => { setActiveTab(user?.role === 'staff' ? 'admin' : 'profile'); setNotificationsOpen(false); }}
-                                >
-                                  {user?.role === 'staff' ? 'ดูรายละเอียดในระบบจัดการ' : 'ดูรายละเอียดในโปรไฟล์'} &rarr;
-                                </button>
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </motion.div>

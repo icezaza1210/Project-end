@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Shield, User, GraduationCap, ArrowRight, Sparkles, ArrowLeft } from 'lucide-react';
+import { Trophy, Shield, User, GraduationCap, ArrowRight, Sparkles, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { DEPARTMENTS } from '../data';
 import { collection, doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -16,6 +16,7 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
   const [studentId, setStudentId] = useState('');
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
   const [staffCode, setStaffCode] = useState('');
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRegister, setIsRegister] = useState(false);
   const [phone, setPhone] = useState('');
@@ -158,7 +159,7 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
           return;
         }
 
-        const VALID_STAFF_PASSWORDS = ['staff123', 'scisports2026', 'pnrustaff','pnru123'];
+        const VALID_STAFF_PASSWORDS = ['staff123', 'scisports2026', 'pnrustaff' , 'pnru123'];
         if (!VALID_STAFF_PASSWORDS.includes(staffCode.trim())) {
           setError('รหัสผ่านสตาฟฟ์ไม่ถูกต้อง! กรุณาใช้รหัสผ่านสตาฟฟ์สโมฯ ที่ถูกต้อง ');
           setIsLoading(false);
@@ -394,16 +395,26 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
                   <div className="flex justify-between items-end ml-1 mb-1">
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">รหัสผ่านสตาฟฟ์ <span className="text-red-500 font-bold">*</span></label>
                   </div>
-                  <input
-                    type="password"
-                    required
-                    placeholder="ระบุรหัสผ่านสตาฟฟ์ (ห้ามเว้นว่าง)"
-                    value={staffCode}
-                    onChange={(e) => setStaffCode(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
-                    id="input-login-staff-pass"
-                  />
-
+                  <div className="relative flex items-center">
+                    <input
+                      type={showStaffPassword ? 'text' : 'password'}
+                      required
+                      placeholder="ระบุรหัสผ่านสตาฟฟ์ (ห้ามเว้นว่าง)"
+                      value={staffCode}
+                      onChange={(e) => setStaffCode(e.target.value)}
+                      className="w-full pl-4 pr-11 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
+                      id="input-login-staff-pass"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffPassword(!showStaffPassword)}
+                      className="absolute right-3 text-gray-400 hover:text-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      title={showStaffPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                      id="btn-toggle-staff-password"
+                    >
+                      {showStaffPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
