@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { User, Booking } from '../types';
 import { User as UserIcon, Calendar, CheckCircle2, Clock, XCircle, Package, ArrowRight, Activity, Award, Check } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { formatBookingDateTime } from '../lib/format';
 
 interface StudentProfileProps {
   user: User;
@@ -19,6 +20,7 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
   const [reportingBookingId, setReportingBookingId] = useState<string | null>(null);
   const [reportText, setReportText] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000); // update every minute
@@ -66,7 +68,14 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
     }
   };
   const { t } = useSettings();
-  const userBookings = bookings.filter(b => b.studentId === user.id);
+  const userBookings = [...bookings]
+    .filter(b => b.studentId === user.id)
+    .sort((a, b) => {
+      const numA = parseInt(a.id.replace(/[^0-9]/g, ''), 10) || 0;
+      const numB = parseInt(b.id.replace(/[^0-9]/g, ''), 10) || 0;
+      if (numA !== numB) return numB - numA;
+      return b.id.localeCompare(a.id);
+    });
   
   const pending = userBookings.filter(b => b.status === 'pending');
   const approved = userBookings.filter(b => b.status === 'approved' || b.status === 'active');
@@ -311,7 +320,7 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
                 ประวัติย้อนหลัง
               </h3>
               <div className="space-y-3">
-                {history.slice(0, 5).map(booking => (
+                {(showAllHistory ? history : history.slice(0, 5)).map(booking => (
                   <div key={booking.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-80 hover:opacity-100 transition">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 flex items-center justify-center shrink-0">
@@ -325,14 +334,20 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
                         <p className="text-sm font-bold text-gray-800">{booking.equipmentName} <span className="text-gray-500 font-normal ml-1">x{booking.quantity}</span></p>
                       </div>
                     </div>
-                    <div className="text-right sm:text-right">
-                      <span className="text-[11px] text-gray-500 font-medium bg-white px-2 py-1 rounded-lg border border-gray-100 inline-block">{booking.createdAt}</span>
+                    <div className="text-right sm:text-right shrink-0">
+                      <span className="text-[11px] text-gray-600 font-bold bg-white px-2.5 py-1 rounded-lg border border-gray-200/80 shadow-2xs inline-flex items-center gap-1.5">
+                        <Clock size={12} className="text-gray-400" />
+                        {formatBookingDateTime(booking.createdAt)}
+                      </span>
                     </div>
                   </div>
                 ))}
                 {history.length > 5 && (
-                  <button className="w-full py-3 mt-2 text-xs font-bold text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-xl transition">
-                    ดูประวัติทั้งหมด ({history.length})
+                  <button 
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                    className="w-full py-3 mt-2 text-xs font-bold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 border border-gray-200/60"
+                  >
+                    {showAllHistory ? 'ย่อประวัติ' : `ดูประวัติทั้งหมด (${history.length})`}
                   </button>
                 )}
               </div>

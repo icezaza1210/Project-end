@@ -1,4 +1,5 @@
 import { seedDatabase, listenEquipment, listenBookings, listenLogs, listenUsers, pushLogDb, updateBookingDb, addBookingDb, deleteBookingDb, updateEquipmentDb, updateUserDb, addUserDb, addPenaltyLogDb, listenPenaltyLogs } from "./lib/db";
+import { formatBookingDateTime } from "./lib/format";
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from './data';
@@ -19,8 +20,37 @@ export default function App() {
   const { t, setIsSettingsOpen, playPop } = useSettings();
   
   // Main states
-  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const savedUser = localStorage.getItem('sci_sports_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>(() => {
+    try {
+      const savedUser = localStorage.getItem('sci_sports_user');
+      if (savedUser) return 'app';
+      const savedMode = localStorage.getItem('sci_sports_view_mode');
+      if (savedMode === 'landing' || savedMode === 'login' || savedMode === 'app') {
+        return savedMode;
+      }
+    } catch (e) {}
+    return 'landing';
+  });
+
+  // Sync session state with localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('sci_sports_user', JSON.stringify(user));
+      localStorage.setItem('sci_sports_view_mode', 'app');
+    } else {
+      localStorage.removeItem('sci_sports_user');
+      localStorage.setItem('sci_sports_view_mode', viewMode);
+    }
+  }, [user, viewMode]);
   
   // New States for Penalties & Issues
   const [usersDb, setUsersDb] = useState<Record<string, User>>({});
@@ -80,7 +110,8 @@ export default function App() {
           id: `issue-${b.id}`,
           type: 'danger',
           name: `รายงานปัญหาจาก ${b.studentName}`,
-          msg: `${b.equipmentName}: ${b.issueDetails || 'ชำรุด/เสียหาย'}`
+          msg: `${b.equipmentName}: ${b.issueDetails || 'ชำรุด/เสียหาย'}`,
+          time: b.createdAt
         });
       });
 
@@ -135,22 +166,28 @@ export default function App() {
 
         if (b.returnTime && b.returnTime !== 'ไม่ระบุ') {
           try {
-            const [retHour, retMin] = b.returnTime.split(':').map(Number);
-            const currHour = currentTime.getHours();
-            const currMin = currentTime.getMinutes();
-            const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
+            const parts = b.returnTime.replace(/[^0-9:]/g, '').split(':');
+            if (parts.length >= 2) {
+              const retHour = parseInt(parts[0], 10);
+              const retMin = parseInt(parts[1], 10);
+              if (!isNaN(retHour) && !isNaN(retMin)) {
+                const currHour = currentTime.getHours();
+                const currMin = currentTime.getMinutes();
+                const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
 
-            if (diff < 0) {
-              alertType = 'danger';
-              alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
-              isUrgent = true;
-            } else if (diff <= 30) {
-              alertType = 'warning';
-              alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
-              isUrgent = true;
-            } else {
-              alertType = 'info';
-              alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
+                if (diff < 0) {
+                  alertType = 'danger';
+                  alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
+                  isUrgent = true;
+                } else if (diff <= 30) {
+                  alertType = 'warning';
+                  alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
+                  isUrgent = true;
+                } else {
+                  alertType = 'info';
+                  alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
+                }
+              }
             }
           } catch (e) {}
         }
@@ -160,7 +197,8 @@ export default function App() {
           id: `active-${b.id}`,
           type: alertType,
           name: alertType === 'danger' ? `เลยกำหนดคืน! (${b.equipmentName})` : alertType === 'warning' ? `ใกล้ถึงกำหนดคืน (${b.equipmentName})` : `กำลังยืมใช้งาน (${b.equipmentName})`,
-          msg: alertMsg
+          msg: alertMsg,
+          time: b.createdAt
         });
       } else if (b.status === 'pending') {
         alertList.push({
@@ -177,7 +215,8 @@ export default function App() {
           id: `resolved-${b.id}`,
           type: 'success',
           name: `รายงานปัญหาได้รับการแก้ไข`,
-          msg: `รายงานอุปกรณ์ ${b.equipmentName} ได้รับการตรวจสอบและแก้ไขแล้ว`
+          msg: `รายงานอุปกรณ์ ${b.equipmentName} ได้รับการตรวจสอบและแก้ไขแล้ว`,
+          time: b.createdAt
         });
       }
     });
@@ -264,11 +303,14 @@ export default function App() {
 
   const handleSubmitBooking = (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
     const ticketCode = `SCI-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const newBooking: Booking = {
       ...bookingData,
       id: `booking-${Date.now()}`,
       ticketCode,
-      createdAt: new Date().toLocaleTimeString('th-TH'),
+      createdAt: `${dateStr} ${timeStr}`,
       status: 'pending',
     };
 
@@ -585,11 +627,18 @@ export default function App() {
                                   {al.type === 'success' && <CheckCircle2 size={14} />}
                                   {al.type === 'info' && <Info size={14} />}
                                 </div>
-                                <div className="flex-1">
-                                  <p className={`text-[12px] font-black leading-tight ${titleColor}`}>{al.name}</p>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-1 mb-0.5">
+                                    <p className={`text-[12px] font-black leading-tight ${titleColor}`}>{al.name}</p>
+                                    {al.time && (
+                                      <span className="text-[9px] font-bold text-gray-500 bg-white/90 px-1.5 py-0.5 rounded-md border border-gray-200/80 shrink-0">
+                                        {formatBookingDateTime(al.time)}
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className={`text-[11px] mt-0.5 font-medium leading-relaxed ${textColor}`}>{al.msg}</p>
                                   <button 
-                                    className="text-[10px] bg-white text-gray-700 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1"
+                                    className="text-[10px] bg-white text-gray-700 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer"
                                     onClick={() => { setActiveTab(user?.role === 'staff' ? 'admin' : 'profile'); setNotificationsOpen(false); }}
                                   >
                                     {user?.role === 'staff' ? 'ดูรายละเอียดในระบบจัดการ' : 'ดูรายละเอียดในโปรไฟล์'} &rarr;
@@ -753,6 +802,7 @@ export default function App() {
                           pushLog(`ผู้ใช้ลงชื่อออกจากระบบเพื่อสลับบัญชี`, 'system');
                           setUser(null);
                           setActiveTab('catalog');
+                          setViewMode('login');
                         }}
                         className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
                         id="logout-back-to-login"
@@ -840,22 +890,18 @@ export default function App() {
                 </button>
               </div>
               <div className="p-4 space-y-3">
-                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100">
+                 <a 
+                   href="https://www.facebook.com/profile.php?id=100063495553443" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-blue-50/50 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100"
+                 >
                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                        <Bell size={18} />
                     </div>
                     <div>
                        <p className="text-xs font-bold text-gray-800">Facebook Page</p>
                        <p className="text-[10px] text-gray-500">สโมสรนักศึกษา คณะวิทย์ฯ</p>
-                    </div>
-                 </a>
-                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-green-100">
-                    <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                       <Radio size={18} />
-                    </div>
-                    <div>
-                       <p className="text-xs font-bold text-gray-800">Line Official</p>
-                       <p className="text-[10px] text-gray-500">@scisports_pnru</p>
                     </div>
                  </a>
               </div>

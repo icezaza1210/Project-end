@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Booking, Equipment } from '../types';
 import { Shield, Check, X, Undo2, AlertCircle, Wrench, RefreshCw, Layers, Search, Package, Plus, Minus, Filter } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { formatBookingDateTime } from '../lib/format';
 
 interface AdminPanelProps {
   bookings: Booking[];
@@ -308,7 +309,9 @@ export default function AdminPanel({
                             <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
                               <td className="p-4">
                                 <span className="font-mono font-bold text-gray-800">{b.ticketCode}</span>
-                                <div className="text-[10px] text-gray-400 mt-0.5">{b.returnTime}</div>
+                                <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                  {formatBookingDateTime(b.createdAt || b.borrowTime)}
+                                </div>
                               </td>
                               <td className="p-4">
                                 <span className="font-bold text-gray-900">{b.equipmentName}</span>
