@@ -28,7 +28,11 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
   const getCountdownText = (returnTime: string) => {
     if (!returnTime || returnTime === 'ไม่ระบุ') return '';
     try {
-      const [retHour, retMin] = returnTime.split(':').map(Number);
+      const parts = returnTime.replace(/[^0-9:]/g, '').split(':');
+      if (parts.length < 2) return null;
+      const retHour = parseInt(parts[0], 10);
+      const retMin = parseInt(parts[1], 10);
+      if (isNaN(retHour) || isNaN(retMin)) return null;
       const now = currentTime;
       const currHour = now.getHours();
       const currMin = now.getMinutes();

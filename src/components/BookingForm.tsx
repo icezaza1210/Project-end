@@ -79,7 +79,8 @@ export default function BookingForm({
   const [selectedDept, setSelectedDept] = useState(currentUser?.department || DEPARTMENTS[0]);
   const [selectedEqId, setSelectedEqId] = useState('');
   const [borrowQuantity, setBorrowQuantity] = useState<number>(1);
-  const [returnTime, setReturnTime] = useState('');
+  const [returnHour, setReturnHour] = useState('17');
+  const [returnMinute, setReturnMinute] = useState('00');
   
   const [selectedItem, setSelectedItem] = useState<Equipment | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -120,9 +121,24 @@ export default function BookingForm({
     const defaultTime = new Date();
     defaultTime.setHours(defaultTime.getHours() + 3);
     const hours = String(defaultTime.getHours()).padStart(2, '0');
-    const mins = String(defaultTime.getMinutes()).padStart(2, '0');
-    setReturnTime(`${hours}:${mins}`);
+    const mins = defaultTime.getMinutes() < 30 ? '00' : '30';
+    setReturnHour(hours);
+    setReturnMinute(mins);
   }, []);
+
+  const setTimePresetHours = (addHours: number) => {
+    const target = new Date();
+    target.setHours(target.getHours() + addHours);
+    setReturnHour(String(target.getHours()).padStart(2, '0'));
+    setReturnMinute(target.getMinutes() < 30 ? '00' : '30');
+  };
+
+  const setExactTime = (hourStr: string, minStr: string = '00') => {
+    setReturnHour(hourStr);
+    setReturnMinute(minStr);
+  };
+
+  const returnTime = `${returnHour}:${returnMinute}`;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -281,8 +297,51 @@ export default function BookingForm({
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 block">{t('เวลาคืน (วันนี้)', 'Return Time')}</label>
-                  <input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#397d54]" />
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-gray-700 block">{t('เวลาคืน ', 'Return Time (24h)')}</label>
+                    <span className="text-[11px] font-black text-[#397d54] bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      {returnHour}:{returnMinute} น.
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={returnHour}
+                      onChange={(e) => setReturnHour(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#397d54] cursor-pointer"
+                    >
+                      {[
+                        { h: '08', label: '08:00 น.' },
+                        { h: '09', label: '09:00 น.' },
+                        { h: '10', label: '10:00 น.' },
+                        { h: '11', label: '11:00 น.' },
+                        { h: '12', label: '12:00 น.' },
+                        { h: '13', label: '13:00 น.' },
+                        { h: '14', label: '14:00 น.' },
+                        { h: '15', label: '15:00 น.' },
+                        { h: '16', label: '16:00 น.' },
+                        { h: '17', label: '17:00 น.' },
+                        { h: '18', label: '18:00 น.' },
+                        { h: '19', label: '19:00 น.' },
+                        { h: '20', label: '20:00 น.' },
+                        { h: '21', label: '21:00 น.' },
+                        { h: '22', label: '22:00 น.' },
+                      ].map(opt => (
+                        <option key={opt.h} value={opt.h}>{opt.label}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={returnMinute}
+                      onChange={(e) => setReturnMinute(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#397d54] cursor-pointer"
+                    >
+                      <option value="00">00 นาที</option>
+                      <option value="15">15 นาที</option>
+                      <option value="30">30 นาที</option>
+                      <option value="45">45 นาที</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

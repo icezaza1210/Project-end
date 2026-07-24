@@ -19,8 +19,37 @@ export default function App() {
   const { t, setIsSettingsOpen, playPop } = useSettings();
   
   // Main states
-  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const savedUser = localStorage.getItem('sci_sports_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>(() => {
+    try {
+      const savedUser = localStorage.getItem('sci_sports_user');
+      if (savedUser) return 'app';
+      const savedMode = localStorage.getItem('sci_sports_view_mode');
+      if (savedMode === 'landing' || savedMode === 'login' || savedMode === 'app') {
+        return savedMode;
+      }
+    } catch (e) {}
+    return 'landing';
+  });
+
+  // Sync session state with localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('sci_sports_user', JSON.stringify(user));
+      localStorage.setItem('sci_sports_view_mode', 'app');
+    } else {
+      localStorage.removeItem('sci_sports_user');
+      localStorage.setItem('sci_sports_view_mode', viewMode);
+    }
+  }, [user, viewMode]);
   
   // New States for Penalties & Issues
   const [usersDb, setUsersDb] = useState<Record<string, User>>({});
@@ -132,22 +161,28 @@ export default function App() {
 
         if (b.returnTime && b.returnTime !== 'ไม่ระบุ') {
           try {
-            const [retHour, retMin] = b.returnTime.split(':').map(Number);
-            const currHour = currentTime.getHours();
-            const currMin = currentTime.getMinutes();
-            const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
+            const parts = b.returnTime.replace(/[^0-9:]/g, '').split(':');
+            if (parts.length >= 2) {
+              const retHour = parseInt(parts[0], 10);
+              const retMin = parseInt(parts[1], 10);
+              if (!isNaN(retHour) && !isNaN(retMin)) {
+                const currHour = currentTime.getHours();
+                const currMin = currentTime.getMinutes();
+                const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
 
-            if (diff < 0) {
-              alertType = 'danger';
-              alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
-              isUrgent = true;
-            } else if (diff <= 30) {
-              alertType = 'warning';
-              alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
-              isUrgent = true;
-            } else {
-              alertType = 'info';
-              alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
+                if (diff < 0) {
+                  alertType = 'danger';
+                  alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
+                  isUrgent = true;
+                } else if (diff <= 30) {
+                  alertType = 'warning';
+                  alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
+                  isUrgent = true;
+                } else {
+                  alertType = 'info';
+                  alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
+                }
+              }
             }
           } catch (e) {}
         }
@@ -697,6 +732,7 @@ export default function App() {
                           pushLog(`ผู้ใช้ลงชื่อออกจากระบบเพื่อสลับบัญชี`, 'system');
                           setUser(null);
                           setActiveTab('catalog');
+                          setViewMode('login');
                         }}
                         className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
                         id="logout-back-to-login"
