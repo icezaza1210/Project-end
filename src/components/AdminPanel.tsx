@@ -14,7 +14,8 @@ interface AdminPanelProps {
   onToggleMaintenance: (equipmentId: string) => void;
   onUpdateStock?: (equipmentId: string, newTotal: number) => void;
   usersDb?: any[];
-  onUpdateUserStatus?: (userId: string, penaltyDelta: number, isBlacklisted: boolean) => void;
+  penaltyLogs?: any[];
+  onUpdateUserStatus?: (userId: string, penaltyDelta: number, isBlacklisted: boolean, reason: string) => void;
   onResolveIssue?: (bookingId: string) => void;
 }
 
@@ -28,6 +29,7 @@ export default function AdminPanel({
   onToggleMaintenance,
   onUpdateStock,
   usersDb = [],
+  penaltyLogs = [],
   onUpdateUserStatus,
   onResolveIssue
 }: AdminPanelProps) {
@@ -36,6 +38,9 @@ export default function AdminPanel({
   const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'history'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [penaltyReason, setPenaltyReason] = useState('');
+  const [penaltyAmount, setPenaltyAmount] = useState<number>(10);
 
   const pendingBookings = bookings.filter((b) => b.status === 'pending');
   const currentActiveBorrows = bookings.filter((b) => b.status === 'approved' || b.status === 'active');
@@ -438,13 +443,15 @@ export default function AdminPanel({
                     <th className="pb-3 font-bold text-gray-500">ชื่อ - สกุล</th>
                     <th className="pb-3 font-bold text-gray-500">บทบาท</th>
                     <th className="pb-3 font-bold text-gray-500 text-center">แต้มหัก</th>
-                    <th className="pb-3 font-bold text-gray-500 text-center">แบล็คลิสต์</th>
+                    <th className="pb-3 font-bold text-gray-500 text-center">สถานะ</th>
                     <th className="pb-3 font-bold text-gray-500 text-right">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredUsers.map(u => (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                  {filteredUsers.map(u => {
+                    const isSuspended = u.suspendedUntil && u.suspendedUntil > Date.now();
+                    return (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setSelectedUser(u)}>
                       <td className="py-4 font-mono text-xs">{u.id}</td>
                       <td className="py-4 font-bold text-gray-900">{u.name} <span className="text-xs font-normal text-gray-500 block">{u.department}</span></td>
                       <td className="py-4">
@@ -453,44 +460,145 @@ export default function AdminPanel({
                         </span>
                       </td>
                       <td className="py-4 text-center">
-                        <span className={`font-black ${u.penaltyPoints ? 'text-rose-600' : 'text-gray-400'}`}>
+                        <span className={`font-black ${u.penaltyPoints >= 100 ? 'text-rose-600' : 'text-gray-400'}`}>
                           {u.penaltyPoints || 0}
                         </span>
                       </td>
                       <td className="py-4 text-center">
                         {u.isBlacklisted ? (
                            <span className="px-2 py-1 bg-black text-white text-[10px] font-bold rounded uppercase">Blacklisted</span>
+                        ) : isSuspended ? (
+                           <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">Suspended</span>
                         ) : (
                            <span className="text-gray-300">-</span>
                         )}
                       </td>
-                      <td className="py-4 text-right space-x-2">
-                        <button 
-                          onClick={() => onUpdateUserStatus && onUpdateUserStatus(u.id, 10, u.isBlacklisted || false)}
-                          className="px-2 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded hover:bg-rose-100"
-                          title="เพิ่มแต้มหัก (10)"
-                        >
-                          +หักแต้ม
-                        </button>
-                        <button 
-                          onClick={() => onUpdateUserStatus && onUpdateUserStatus(u.id, -10, u.isBlacklisted || false)}
-                          className="px-2 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded hover:bg-gray-100"
-                          title="ลดแต้มหัก (10)"
-                        >
-                          -หักแต้ม
-                        </button>
-                        <button 
-                          onClick={() => onUpdateUserStatus && onUpdateUserStatus(u.id, 0, !u.isBlacklisted)}
-                          className={`px-2 py-1 text-[10px] font-bold rounded ${u.isBlacklisted ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-black text-white hover:bg-gray-800'}`}
-                        >
-                          {u.isBlacklisted ? 'ปลดแบล็คลิสต์' : 'แบล็คลิสต์'}
+                      <td className="py-4 text-right">
+                        <button className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200">
+                          จัดการ
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
+            {/* Selected User Modal / Panel */}
+            <AnimatePresence>
+              {selectedUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+                  >
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-start">
+                      <div>
+                        <h3 className="text-xl font-black text-gray-900">{selectedUser.name}</h3>
+                        <p className="text-sm text-gray-500">{selectedUser.id} • {selectedUser.department}</p>
+                      </div>
+                      <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400">
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                          <p className="text-xs text-gray-500 font-bold mb-1">คะแนนสะสม</p>
+                          <p className={`text-2xl font-black ${selectedUser.penaltyPoints >= 100 ? 'text-rose-600' : 'text-gray-900'}`}>{selectedUser.penaltyPoints || 0} pts</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                          <p className="text-xs text-gray-500 font-bold mb-1">สถานะ</p>
+                          {selectedUser.isBlacklisted ? (
+                            <p className="text-rose-600 font-black flex items-center gap-2"><X size={16} /> แบล็คลิสต์ถาวร</p>
+                          ) : (selectedUser.suspendedUntil && selectedUser.suspendedUntil > Date.now()) ? (
+                            <p className="text-amber-600 font-black flex items-center gap-2">ระงับถึง {new Date(selectedUser.suspendedUntil).toLocaleDateString('th-TH')}</p>
+                          ) : (
+                            <p className="text-emerald-600 font-black flex items-center gap-2"><Check size={16} /> ปกติ</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-rose-50 border border-rose-100 p-5 rounded-2xl">
+                        <h4 className="font-bold text-rose-900 mb-3 flex items-center gap-2"><AlertCircle size={16} /> ลงโทษผู้ใช้งาน</h4>
+                        <div className="space-y-3">
+                          <input 
+                            type="text" 
+                            placeholder="ระบุเหตุผล เช่น ส่งคืนล่าช้า, ทำอุปกรณ์เสียหาย..." 
+                            value={penaltyReason}
+                            onChange={(e) => setPenaltyReason(e.target.value)}
+                            className="w-full px-4 py-2 border border-rose-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20"
+                          />
+                          <div className="flex gap-2">
+                             <input 
+                              type="number" 
+                              value={penaltyAmount}
+                              onChange={(e) => setPenaltyAmount(Number(e.target.value))}
+                              className="w-24 px-4 py-2 border border-rose-200 rounded-xl text-sm font-bold"
+                             />
+                             <button 
+                               onClick={() => {
+                                 if(!penaltyReason) return alert('กรุณาระบุเหตุผล');
+                                 if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, penaltyAmount, selectedUser.isBlacklisted, penaltyReason);
+                                 setPenaltyReason('');
+                               }}
+                               className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm"
+                             >
+                               บันทึกหักคะแนน
+                             </button>
+                             {!selectedUser.isBlacklisted && (
+                               <button 
+                                 onClick={() => {
+                                   if(confirm('ยืนยันแบนถาวรผู้ใช้นี้ทันทีหรือไม่?')) {
+                                     if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, 0, true, 'แบนฉุกเฉิน: ' + penaltyReason);
+                                   }
+                                 }}
+                                 className="px-4 py-2 bg-black hover:bg-gray-800 text-white font-bold rounded-xl text-sm flex-1"
+                               >
+                                 แบนถาวรทันที (ฉุกเฉิน)
+                               </button>
+                             )}
+                             {selectedUser.isBlacklisted && (
+                               <button 
+                                 onClick={() => {
+                                   if(confirm('ยืนยันปลดแบนผู้ใช้นี้หรือไม่?')) {
+                                     if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, 0, false, 'ปลดแบล็คลิสต์');
+                                   }
+                                 }}
+                                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm flex-1"
+                               >
+                                 ปลดแบล็คลิสต์ & รีเซ็ตคะแนน
+                               </button>
+                             )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-bold text-gray-900 mb-3">ประวัติความประพฤติ</h4>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                          {penaltyLogs.filter(l => l.studentId === selectedUser.id).length > 0 ? penaltyLogs.filter(l => l.studentId === selectedUser.id).map(log => (
+                            <div key={log.id} className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex justify-between items-start">
+                              <div>
+                                <p className="text-xs font-bold text-gray-900">{log.actionTaken} {log.pointsAdded > 0 ? `(+${log.pointsAdded})` : ''}</p>
+                                <p className="text-[11px] text-gray-600 mt-0.5">เหตุผล: {log.reason || '-'}</p>
+                                <p className="text-[10px] text-gray-400 mt-1">โดยสตาฟฟ์ {log.adminId} • {new Date(log.timestamp).toLocaleString('th-TH')}</p>
+                              </div>
+                            </div>
+                          )) : (
+                            <p className="text-xs text-gray-500 italic">ไม่มีประวัติการทำผิด</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

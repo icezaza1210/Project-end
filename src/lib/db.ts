@@ -1,6 +1,6 @@
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Equipment, Booking, ActivityLog, User } from '../types';
+import { Equipment, Booking, ActivityLog, User, PenaltyLog } from '../types';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from '../data';
 
 // Collections
@@ -8,6 +8,7 @@ export const usersCol = collection(db, 'users');
 export const equipmentCol = collection(db, 'equipment');
 export const bookingsCol = collection(db, 'bookings');
 export const logsCol = collection(db, 'logs');
+export const penaltyLogsCol = collection(db, 'penalty_logs');
 
 // Seed Database if empty
 export const seedDatabase = async () => {
@@ -58,6 +59,12 @@ export const listenUsers = (cb: (data: Record<string, User>) => void) => {
   });
 };
 
+export const listenPenaltyLogs = (cb: (data: PenaltyLog[]) => void) => {
+  return onSnapshot(penaltyLogsCol, (snap) => {
+    cb(snap.docs.map(d => d.data() as PenaltyLog).sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+  });
+};
+
 // Mutations
 export const pushLogDb = async (message: string, type: ActivityLog['type']) => {
   const time = new Date();
@@ -88,4 +95,8 @@ export const updateUserDb = async (id: string, data: Partial<User>) => {
 
 export const addUserDb = async (user: User) => {
   await setDoc(doc(usersCol, user.id), user);
+};
+
+export const addPenaltyLogDb = async (log: PenaltyLog) => {
+  await setDoc(doc(penaltyLogsCol, log.id), log);
 };

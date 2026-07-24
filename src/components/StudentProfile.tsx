@@ -28,11 +28,7 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
   const getCountdownText = (returnTime: string) => {
     if (!returnTime || returnTime === 'ไม่ระบุ') return '';
     try {
-      const parts = returnTime.replace(/[^0-9:]/g, '').split(':');
-      if (parts.length < 2) return null;
-      const retHour = parseInt(parts[0], 10);
-      const retMin = parseInt(parts[1], 10);
-      if (isNaN(retHour) || isNaN(retMin)) return null;
+      const [retHour, retMin] = returnTime.split(':').map(Number);
       const now = currentTime;
       const currHour = now.getHours();
       const currMin = now.getMinutes();
@@ -156,23 +152,27 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
                     แต้มหัก: {user.penaltyPoints}
                   </span>
                 ) : null}
-                {user.isBlacklisted && (
+                {user.isBlacklisted ? (
                   <span className="px-3 py-1.5 bg-black border border-gray-800 text-white rounded-xl text-xs font-bold flex items-center gap-1 uppercase tracking-widest">
                     BLACKLISTED
                   </span>
-                )}
+                ) : (user.suspendedUntil && user.suspendedUntil > Date.now()) ? (
+                  <span className="px-3 py-1.5 bg-amber-100 border border-amber-300 text-amber-800 rounded-xl text-xs font-bold flex items-center gap-1">
+                    ระงับการยืมถึง: {new Date(user.suspendedUntil).toLocaleDateString('th-TH')}
+                  </span>
+                ) : null}
               </div>
             </div>
 
             {/* Quick Action */}
             <div className="w-full md:w-auto pb-2">
               <button 
-                onClick={user.isBlacklisted ? undefined : onNavigateCatalog}
-                disabled={user.isBlacklisted}
-                className={`w-full md:w-auto px-6 py-3 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 group ${user.isBlacklisted ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' : 'bg-gray-900 hover:bg-black text-white hover:shadow-lg'}`}
+                onClick={(user.isBlacklisted || (user.suspendedUntil && user.suspendedUntil > Date.now())) ? undefined : onNavigateCatalog}
+                disabled={user.isBlacklisted || (user.suspendedUntil && user.suspendedUntil > Date.now())}
+                className={`w-full md:w-auto px-6 py-3 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 group ${(user.isBlacklisted || (user.suspendedUntil && user.suspendedUntil > Date.now())) ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' : 'bg-gray-900 hover:bg-black text-white hover:shadow-lg'}`}
               >
                 ยืมอุปกรณ์เพิ่ม
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={16} className={((user.isBlacklisted || (user.suspendedUntil && user.suspendedUntil > Date.now()))) ? '' : 'group-hover:translate-x-1 transition-transform'} />
               </button>
             </div>
           </div>

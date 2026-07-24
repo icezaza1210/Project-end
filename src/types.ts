@@ -49,5 +49,16 @@ export interface User {
   department?: string;
   penaltyPoints?: number;
   isBlacklisted?: boolean;
+  suspendedUntil?: number; // timestamp in ms
+}
+
+export interface PenaltyLog {
+  id: string;
+  studentId: string;
+  adminId: string;
+  pointsAdded: number;
+  reason: string;
+  timestamp: string; // ISO string or similar
+  actionTaken: 'Points Added' | 'Immediate Blacklist' | 'Unbanned';
 }
 

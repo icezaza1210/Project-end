@@ -1,4 +1,4 @@
-import { seedDatabase, listenEquipment, listenBookings, listenLogs, listenUsers, pushLogDb, updateBookingDb, addBookingDb, deleteBookingDb, updateEquipmentDb, updateUserDb, addUserDb } from "./lib/db";
+import { seedDatabase, listenEquipment, listenBookings, listenLogs, listenUsers, pushLogDb, updateBookingDb, addBookingDb, deleteBookingDb, updateEquipmentDb, updateUserDb, addUserDb, addPenaltyLogDb, listenPenaltyLogs } from "./lib/db";
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from './data';
@@ -19,40 +19,12 @@ export default function App() {
   const { t, setIsSettingsOpen, playPop } = useSettings();
   
   // Main states
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const savedUser = localStorage.getItem('sci_sports_user');
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>(() => {
-    try {
-      const savedUser = localStorage.getItem('sci_sports_user');
-      if (savedUser) return 'app';
-      const savedMode = localStorage.getItem('sci_sports_view_mode');
-      if (savedMode === 'landing' || savedMode === 'login' || savedMode === 'app') {
-        return savedMode;
-      }
-    } catch (e) {}
-    return 'landing';
-  });
-
-  // Sync session state with localStorage
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('sci_sports_user', JSON.stringify(user));
-      localStorage.setItem('sci_sports_view_mode', 'app');
-    } else {
-      localStorage.removeItem('sci_sports_user');
-      localStorage.setItem('sci_sports_view_mode', viewMode);
-    }
-  }, [user, viewMode]);
+  const [viewMode, setViewMode] = useState<'landing' | 'login' | 'app'>('landing');
+  const [user, setUser] = useState<User | null>(null);
   
   // New States for Penalties & Issues
   const [usersDb, setUsersDb] = useState<Record<string, User>>({});
+  const [penaltyLogs, setPenaltyLogs] = useState<any[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -68,6 +40,7 @@ export default function App() {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     seedDatabase();
     const unsubUsers = listenUsers(setUsersDb);
+    const unsubPenaltyLogs = listenPenaltyLogs(setPenaltyLogs);
     const unsubEq = listenEquipment(setEquipment);
     const unsubBookings = listenBookings(setBookings);
     const unsubLogs = listenLogs(setLogs);
@@ -75,6 +48,7 @@ export default function App() {
     return () => {
       clearInterval(timer);
       unsubUsers();
+      unsubPenaltyLogs();
       unsubEq();
       unsubBookings();
       unsubLogs();
@@ -161,28 +135,22 @@ export default function App() {
 
         if (b.returnTime && b.returnTime !== 'ไม่ระบุ') {
           try {
-            const parts = b.returnTime.replace(/[^0-9:]/g, '').split(':');
-            if (parts.length >= 2) {
-              const retHour = parseInt(parts[0], 10);
-              const retMin = parseInt(parts[1], 10);
-              if (!isNaN(retHour) && !isNaN(retMin)) {
-                const currHour = currentTime.getHours();
-                const currMin = currentTime.getMinutes();
-                const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
+            const [retHour, retMin] = b.returnTime.split(':').map(Number);
+            const currHour = currentTime.getHours();
+            const currMin = currentTime.getMinutes();
+            const diff = (retHour * 60 + retMin) - (currHour * 60 + currMin);
 
-                if (diff < 0) {
-                  alertType = 'danger';
-                  alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
-                  isUrgent = true;
-                } else if (diff <= 30) {
-                  alertType = 'warning';
-                  alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
-                  isUrgent = true;
-                } else {
-                  alertType = 'info';
-                  alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
-                }
-              }
+            if (diff < 0) {
+              alertType = 'danger';
+              alertMsg = `เลยกำหนดคืน ${Math.abs(diff)} นาที! (รหัสตั๋ว ${b.ticketCode}) โปรดนำมาคืนทันที`;
+              isUrgent = true;
+            } else if (diff <= 30) {
+              alertType = 'warning';
+              alertMsg = `เหลือเวลาอีก ${diff} นาทีจะครบกำหนดคืน (รหัสตั๋ว ${b.ticketCode})`;
+              isUrgent = true;
+            } else {
+              alertType = 'info';
+              alertMsg = `รหัสตั๋ว ${b.ticketCode} • กำหนดคืนเวลา ${b.returnTime} น.`;
             }
           } catch (e) {}
         }
@@ -236,12 +204,62 @@ export default function App() {
     }
   };
 
-  const handleUpdateUserStatus = (userId: string, penaltyDelta: number, isBlacklisted: boolean) => {
-    const u = usersDb[userId] || { id: userId, name: 'Unknown', role: 'student', penaltyPoints: 0, isBlacklisted: false };
+  const handleUpdateUserStatus = (userId: string, penaltyDelta: number, isBlacklisted: boolean, reason: string = '') => {
+    const u = usersDb[userId] || { id: userId, name: 'Unknown', role: 'student', penaltyPoints: 0, isBlacklisted: false, suspendedUntil: 0 };
+    
+    let newPoints = Math.max(0, (u.penaltyPoints || 0) + penaltyDelta);
+    let newBlacklisted = isBlacklisted;
+    let newSuspendedUntil = u.suspendedUntil || 0;
+
+    // Point-based rules
+    if (!newBlacklisted) {
+      if (newPoints >= 500) {
+        newBlacklisted = true;
+      } else if (newPoints >= 300) {
+        newSuspendedUntil = Math.max(newSuspendedUntil, Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      } else if (newPoints >= 200) {
+        newSuspendedUntil = Math.max(newSuspendedUntil, Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
+      } else if (newPoints >= 100) {
+        newSuspendedUntil = Math.max(newSuspendedUntil, Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      }
+    }
+
+    // Unban case
+    if (penaltyDelta === 0 && !isBlacklisted && u.isBlacklisted) {
+       newPoints = 0; // reset points on unban
+       newSuspendedUntil = 0;
+    }
+
     updateUserDb(userId, {
-      penaltyPoints: Math.max(0, (u.penaltyPoints || 0) + penaltyDelta),
-      isBlacklisted
+      penaltyPoints: newPoints,
+      isBlacklisted: newBlacklisted,
+      suspendedUntil: newSuspendedUntil
     });
+
+    addPenaltyLogDb({
+      id: `plog-${Date.now()}`,
+      studentId: userId,
+      adminId: user?.id || 'System',
+      pointsAdded: penaltyDelta,
+      reason,
+      timestamp: new Date().toISOString(),
+      actionTaken: isBlacklisted ? 'Immediate Blacklist' : (penaltyDelta === 0 && !isBlacklisted && u.isBlacklisted ? 'Unbanned' : 'Points Added')
+    });
+  };
+
+  const checkEligibility = (userId: string) => {
+    const u = usersDb[userId];
+    if (!u) return true;
+    if (u.isBlacklisted) {
+      alert("คุณติดแบล็คลิสต์ (เนื่องจากคะแนนสะสมถึงเกณฑ์ หรือ กรณีอุปกรณ์สูญหาย) กรุณาติดต่อที่ห้องสโมสรนักศึกษา คณะวิทยาศาสตร์ เพื่อดำเนินการแก้ไข");
+      return false;
+    }
+    if (u.suspendedUntil && u.suspendedUntil > Date.now()) {
+      const untilDate = new Date(u.suspendedUntil).toLocaleDateString('th-TH');
+      alert(`คุณถูกระงับการยืมชั่วคราว จนถึงวันที่ ${untilDate} เนื่องจากคะแนนความประพฤติถึงเกณฑ์ กรุณาติดต่อสโมสรฯ`);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmitBooking = (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
@@ -399,6 +417,9 @@ export default function App() {
 
   // Action helper when user clicks book online from a card
   const handleQuickBookSelect = (item: Equipment) => {
+    if (user && user.role === 'student') {
+      if (!checkEligibility(user.id)) return;
+    }
     setPreselectedEq(item);
     setIsBookingOpen(true);
   };
@@ -732,7 +753,6 @@ export default function App() {
                           pushLog(`ผู้ใช้ลงชื่อออกจากระบบเพื่อสลับบัญชี`, 'system');
                           setUser(null);
                           setActiveTab('catalog');
-                          setViewMode('login');
                         }}
                         className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
                         id="logout-back-to-login"
@@ -744,6 +764,7 @@ export default function App() {
                 ) : (
                   <AdminPanel
                   usersDb={Object.values(usersDb)}
+                  penaltyLogs={penaltyLogs}
                   onUpdateUserStatus={handleUpdateUserStatus}
                   onResolveIssue={(bookingId) => {
                     updateBookingDb(bookingId, { issueStatus: 'resolved' });
@@ -819,18 +840,22 @@ export default function App() {
                 </button>
               </div>
               <div className="p-4 space-y-3">
-                 <a 
-                   href="https://www.facebook.com/profile.php?id=100063495553443" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-blue-50/50 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100"
-                 >
+                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-blue-100">
                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                        <Bell size={18} />
                     </div>
                     <div>
                        <p className="text-xs font-bold text-gray-800">Facebook Page</p>
                        <p className="text-[10px] text-gray-500">สโมสรนักศึกษา คณะวิทย์ฯ</p>
+                    </div>
+                 </a>
+                 <a href="#" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 transition rounded-xl group cursor-pointer border border-transparent hover:border-green-100">
+                    <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                       <Radio size={18} />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-gray-800">Line Official</p>
+                       <p className="text-[10px] text-gray-500">@scisports_pnru</p>
                     </div>
                  </a>
               </div>
