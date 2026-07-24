@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Booking, Equipment } from '../types';
 import { Shield, Check, X, Undo2, AlertCircle, Wrench, RefreshCw, Layers, Search, Package, Plus, Minus, Filter } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
-import { formatBookingDateTime } from '../lib/format';
 
 interface AdminPanelProps {
   bookings: Booking[];
@@ -42,6 +41,8 @@ export default function AdminPanel({
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [penaltyReason, setPenaltyReason] = useState('');
   const [penaltyAmount, setPenaltyAmount] = useState<number>(10);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void, isDestructive?: boolean, confirmText?: string } | null>(null);
+  const [alertDialog, setAlertDialog] = useState<{ title: string; message: string } | null>(null);
 
   const pendingBookings = bookings.filter((b) => b.status === 'pending');
   const currentActiveBorrows = bookings.filter((b) => b.status === 'approved' || b.status === 'active');
@@ -309,9 +310,7 @@ export default function AdminPanel({
                             <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
                               <td className="p-4">
                                 <span className="font-mono font-bold text-gray-800">{b.ticketCode}</span>
-                                <div className="text-[10px] text-gray-500 font-medium mt-0.5">
-                                  {formatBookingDateTime(b.createdAt || b.borrowTime)}
-                                </div>
+                                <div className="text-[10px] text-gray-400 mt-0.5">{b.returnTime}</div>
                               </td>
                               <td className="p-4">
                                 <span className="font-bold text-gray-900">{b.equipmentName}</span>
@@ -545,7 +544,7 @@ export default function AdminPanel({
                              />
                              <button 
                                onClick={() => {
-                                 if(!penaltyReason) return alert('กรุณาระบุเหตุผล');
+                                 if(!penaltyReason) return setAlertDialog({ title: 'เกิดข้อผิดพลาด', message: 'กรุณาระบุเหตุผลการหักคะแนน' });
                                  if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, penaltyAmount, selectedUser.isBlacklisted, penaltyReason);
                                  setPenaltyReason('');
                                }}
@@ -556,9 +555,15 @@ export default function AdminPanel({
                              {!selectedUser.isBlacklisted && (
                                <button 
                                  onClick={() => {
-                                   if(confirm('ยืนยันแบนถาวรผู้ใช้นี้ทันทีหรือไม่?')) {
-                                     if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, 0, true, 'แบนฉุกเฉิน: ' + penaltyReason);
-                                   }
+                                   setConfirmDialog({
+                                     title: 'ยืนยันการแบนถาวร',
+                                     message: 'ยืนยันแบนถาวรผู้ใช้นี้ทันทีหรือไม่? ผู้ใช้จะไม่สามารถยืมอุปกรณ์ได้อีกจนกว่าจะได้รับการปลดแบล็คลิสต์',
+                                     confirmText: 'แบนถาวร',
+                                     isDestructive: true,
+                                     onConfirm: () => {
+                                       if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, 0, true, 'แบนฉุกเฉิน: ' + penaltyReason);
+                                     }
+                                   });
                                  }}
                                  className="px-4 py-2 bg-black hover:bg-gray-800 text-white font-bold rounded-xl text-sm flex-1"
                                >
@@ -568,9 +573,15 @@ export default function AdminPanel({
                              {selectedUser.isBlacklisted && (
                                <button 
                                  onClick={() => {
-                                   if(confirm('ยืนยันปลดแบนผู้ใช้นี้หรือไม่?')) {
-                                     if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, 0, false, 'ปลดแบล็คลิสต์');
-                                   }
+                                   setConfirmDialog({
+                                     title: 'ยืนยันการปลดแบน',
+                                     message: 'ยืนยันปลดแบนผู้ใช้นี้หรือไม่? คะแนนความประพฤติจะถูกรีเซ็ตและผู้ใช้จะสามารถยืมอุปกรณ์ได้ตามปกติ',
+                                     confirmText: 'ปลดแบล็คลิสต์',
+                                     isDestructive: false,
+                                     onConfirm: () => {
+                                       if(onUpdateUserStatus) onUpdateUserStatus(selectedUser.id, 0, false, 'ปลดแบล็คลิสต์');
+                                     }
+                                   });
                                  }}
                                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm flex-1"
                                >
@@ -605,6 +616,73 @@ export default function AdminPanel({
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Admin Alerts & Confirms */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl w-full max-w-sm flex flex-col overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 text-center space-y-3">
+                <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center ${confirmDialog.isDestructive ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                   <AlertCircle size={24} />
+                </div>
+                <h3 className="text-lg font-black text-gray-900">{confirmDialog.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{confirmDialog.message}</p>
+                <div className="pt-4 flex gap-3">
+                  <button
+                    onClick={() => setConfirmDialog(null)}
+                    className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={() => {
+                      confirmDialog.onConfirm();
+                      setConfirmDialog(null);
+                    }}
+                    className={`flex-1 py-2.5 text-white font-bold rounded-xl transition shadow-sm ${confirmDialog.isDestructive ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#397d54] hover:bg-emerald-800'}`}
+                  >
+                    {confirmDialog.confirmText || 'ยืนยัน'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {alertDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl w-full max-w-sm flex flex-col overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                   <AlertCircle size={24} />
+                </div>
+                <h3 className="text-lg font-black text-gray-900">{alertDialog.title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{alertDialog.message}</p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => setAlertDialog(null)}
+                    className="w-full py-2.5 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition shadow-sm"
+                  >
+                    ตกลง
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

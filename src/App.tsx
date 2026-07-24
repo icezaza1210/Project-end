@@ -124,19 +124,50 @@ export default function App() {
     if (userData?.isBlacklisted) {
       count++;
       alertList.push({
-        id: 'user-blacklist',
+        id: 'user-blacklist-status',
         type: 'danger',
         name: 'แจ้งเตือนสถานะบัญชี',
-        msg: 'บัญชีของคุณถูกระงับสิทธิ์การยืมอุปกรณ์ (Blacklisted)'
+        msg: 'บัญชีของคุณถูกระงับสิทธิ์การยืมอุปกรณ์ (Blacklisted) กรุณาติดต่อสโมสรฯ'
       });
-    } else if ((userData?.penaltyPoints || 0) > 0) {
+    } else if (userData?.suspendedUntil && userData.suspendedUntil > Date.now()) {
+      count++;
       alertList.push({
-        id: 'user-penalty',
+        id: 'user-suspended-status',
         type: 'warning',
-        name: 'คะแนนความประพฤติ',
-        msg: `คุณถูกหักคะแนนความประพฤติรวม ${userData?.penaltyPoints} คะแนน`
+        name: 'แจ้งเตือนสถานะบัญชี',
+        msg: `บัญชีของคุณถูกระงับการยืมชั่วคราว จนถึงวันที่ ${new Date(userData.suspendedUntil).toLocaleDateString('th-TH')}`
       });
     }
+
+    const myPenaltyLogs = penaltyLogs.filter(log => log.studentId === user?.id);
+    myPenaltyLogs.forEach(log => {
+      count++;
+      if (log.actionTaken === 'Immediate Blacklist') {
+        alertList.push({
+          id: `penalty-${log.id}`,
+          type: 'danger',
+          name: 'ถูกแบน (Blacklisted)',
+          msg: `เหตุผล: ${log.reason || 'ไม่ระบุเหตุผล'}`,
+          time: log.timestamp
+        });
+      } else if (log.actionTaken === 'Unbanned') {
+         alertList.push({
+          id: `penalty-${log.id}`,
+          type: 'success',
+          name: 'ปลดแบล็คลิสต์แล้ว',
+          msg: `บัญชีของคุณสามารถใช้งานได้ตามปกติ (${log.reason || 'ไม่ระบุ'})`,
+          time: log.timestamp
+        });
+      } else if (log.pointsAdded > 0) {
+        alertList.push({
+          id: `penalty-${log.id}`,
+          type: 'warning',
+          name: `ถูกหักคะแนน ${log.pointsAdded} คะแนน`,
+          msg: `เหตุผล: ${log.reason || 'ไม่ระบุเหตุผล'}`,
+          time: log.timestamp
+        });
+      }
+    });
 
     const myBookings = bookings.filter(b => b.studentId === user?.id || (user?.id && b.studentId === user.id));
 
@@ -221,6 +252,13 @@ export default function App() {
       }
     });
 
+    alertList.sort((a, b) => {
+      if (!a.time && !b.time) return 0;
+      if (!a.time) return 1;
+      if (!b.time) return -1;
+      return new Date(b.time).getTime() - new Date(a.time).getTime();
+    });
+
     return { alerts: alertList, urgentCount: count };
   };
 
@@ -286,16 +324,27 @@ export default function App() {
     });
   };
 
+  // App-wide Dialog State
+  const [alertDialog, setAlertDialog] = useState<{ title: string; message: string; type: 'error' | 'warning' } | null>(null);
+
   const checkEligibility = (userId: string) => {
     const u = usersDb[userId];
     if (!u) return true;
     if (u.isBlacklisted) {
-      alert("คุณติดแบล็คลิสต์ (เนื่องจากคะแนนสะสมถึงเกณฑ์ หรือ กรณีอุปกรณ์สูญหาย) กรุณาติดต่อที่ห้องสโมสรนักศึกษา คณะวิทยาศาสตร์ เพื่อดำเนินการแก้ไข");
+      setAlertDialog({
+        title: 'สิทธิ์การยืมถูกระงับ (Blacklisted)',
+        message: 'คุณติดแบล็คลิสต์ (เนื่องจากคะแนนสะสมถึงเกณฑ์ หรือ กรณีอุปกรณ์สูญหาย) กรุณาติดต่อที่ห้องสโมสรนักศึกษา คณะวิทยาศาสตร์ เพื่อดำเนินการแก้ไข',
+        type: 'error'
+      });
       return false;
     }
     if (u.suspendedUntil && u.suspendedUntil > Date.now()) {
       const untilDate = new Date(u.suspendedUntil).toLocaleDateString('th-TH');
-      alert(`คุณถูกระงับการยืมชั่วคราว จนถึงวันที่ ${untilDate} เนื่องจากคะแนนความประพฤติถึงเกณฑ์ กรุณาติดต่อสโมสรฯ`);
+      setAlertDialog({
+        title: 'ถูกระงับการยืมชั่วคราว',
+        message: `คุณถูกระงับการยืมชั่วคราว จนถึงวันที่ ${untilDate} เนื่องจากคะแนนความประพฤติถึงเกณฑ์ กรุณาติดต่อสโมสรฯ`,
+        type: 'warning'
+      });
       return false;
     }
     return true;
@@ -725,7 +774,7 @@ export default function App() {
                 id="profile-view-stage"
               >
                 <StudentProfile
-                  user={user}
+                  user={user ? (usersDb[user.id] || user) : user}
                   bookings={bookings}
                   onNavigateCatalog={() => setActiveTab('catalog')}
                   onCancelBooking={handleCancelBooking}
@@ -919,6 +968,36 @@ export default function App() {
           {isHelpOpen ? <X size={24} /> : <MessageCircle size={24} />}
         </button>
       </div>
+
+      {/* Global Alert Dialog */}
+      <AnimatePresence>
+        {alertDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl w-full max-w-sm flex flex-col overflow-hidden shadow-2xl"
+            >
+              <div className={`p-6 ${alertDialog.type === 'error' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'} flex justify-center items-center py-8`}>
+                <AlertCircle size={48} className={alertDialog.type === 'error' ? 'text-rose-500' : 'text-amber-500'} />
+              </div>
+              <div className="p-6 text-center space-y-4">
+                <h3 className="text-xl font-black text-gray-900">{alertDialog.title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{alertDialog.message}</p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => setAlertDialog(null)}
+                    className="w-full py-3 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition shadow-sm"
+                  >
+                    ตกลง
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
