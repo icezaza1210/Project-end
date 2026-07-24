@@ -124,7 +124,7 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
           const studentDocRef = doc(db, 'students', studentIdClean);
           const studentDoc = await getDoc(studentDocRef);
           if (!studentDoc.exists()) {
-            setError('ไม่พบรหัสนักศึกษานี้ในระบบสโมฯ กรุณาเลือก "ลงทะเบียนใช้งาน" หรือใช้โหมดทดสอบ');
+            setError('ไม่พบรหัสนักศึกษานี้ในระบบสโมฯ กรุณาเลือก "ลงทะเบียนใช้งาน" ');
             setIsLoading(false);
             return;
           }
@@ -158,9 +158,9 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
           return;
         }
 
-        const VALID_STAFF_PASSWORDS = ['staff123', 'scisports2026', 'pnrustaff'];
+        const VALID_STAFF_PASSWORDS = ['staff123', 'scisports2026', 'pnrustaff','pnru123'];
         if (!VALID_STAFF_PASSWORDS.includes(staffCode.trim())) {
-          setError('รหัสผ่านสตาฟฟ์ไม่ถูกต้อง! กรุณาใช้รหัสผ่านสตาฟฟ์สโมฯ ที่ถูกต้อง เช่น staff123, scisports2026 หรือ pnrustaff');
+          setError('รหัสผ่านสตาฟฟ์ไม่ถูกต้อง! กรุณาใช้รหัสผ่านสตาฟฟ์สโมฯ ที่ถูกต้อง ');
           setIsLoading(false);
           return;
         }
@@ -403,9 +403,7 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 transition-all font-mono tracking-wide text-gray-800 placeholder-gray-400 shadow-sm"
                     id="input-login-staff-pass"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed bg-gray-50 p-2 rounded-lg border border-gray-100">
-                    * สตาฟฟ์จำเป็นต้องระบุรหัสผ่าน รหัสที่ใช้งานได้: <span className="font-bold text-gray-800">staff123</span>, <span className="font-bold text-gray-800">scisports2026</span> หรือ <span className="font-bold text-gray-800">pnrustaff</span>
-                  </p>
+
                 </div>
               </motion.div>
             )}
@@ -454,39 +452,7 @@ export default function LoginView({ onLogin, onBack }: LoginViewProps) {
             )}
           </form>
 
-          {/* Quick Sandbox Login Section */}
-          <div className="border-t border-gray-100 pt-5 mt-2 space-y-4" id="quick-login-section">
-            <div className="flex items-center gap-2" id="quick-login-label">
-              <span className="h-px bg-gray-200 flex-1"></span>
-              <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest whitespace-nowrap flex items-center gap-1">
-                <Sparkles size={11} className="text-[#e0ac04]" />
-                โหมดทดสอบระบบ (Autofill)
-              </span>
-              <span className="h-px bg-gray-200 flex-1"></span>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3" id="quick-login-buttons">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('student')}
-                className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 text-[#397d54] rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all active:scale-[0.97]"
-                id="btn-quick-student"
-              >
-                <span className="opacity-70 font-medium">กรอกข้อมูลแบบ</span>
-                <span className="text-emerald-900 tracking-wide">นักศึกษาจำลอง</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('staff')}
-                className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-100/50 text-amber-700 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all active:scale-[0.97]"
-                id="btn-quick-staff"
-              >
-                <span className="opacity-70 font-medium">กรอกรหัสแบบ</span>
-                <span className="text-amber-900 tracking-wide">พี่สตาฟฟ์จำลอง</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Bottom micro copy */}
