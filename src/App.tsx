@@ -1,4 +1,5 @@
 import { seedDatabase, listenEquipment, listenBookings, listenLogs, listenUsers, pushLogDb, updateBookingDb, addBookingDb, deleteBookingDb, updateEquipmentDb, updateUserDb, addUserDb } from "./lib/db";
+import { formatBookingDateTime } from "./lib/format";
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from './data';
@@ -106,7 +107,8 @@ export default function App() {
           id: `issue-${b.id}`,
           type: 'danger',
           name: `รายงานปัญหาจาก ${b.studentName}`,
-          msg: `${b.equipmentName}: ${b.issueDetails || 'ชำรุด/เสียหาย'}`
+          msg: `${b.equipmentName}: ${b.issueDetails || 'ชำรุด/เสียหาย'}`,
+          time: b.createdAt
         });
       });
 
@@ -192,7 +194,8 @@ export default function App() {
           id: `active-${b.id}`,
           type: alertType,
           name: alertType === 'danger' ? `เลยกำหนดคืน! (${b.equipmentName})` : alertType === 'warning' ? `ใกล้ถึงกำหนดคืน (${b.equipmentName})` : `กำลังยืมใช้งาน (${b.equipmentName})`,
-          msg: alertMsg
+          msg: alertMsg,
+          time: b.createdAt
         });
       } else if (b.status === 'pending') {
         alertList.push({
@@ -209,7 +212,8 @@ export default function App() {
           id: `resolved-${b.id}`,
           type: 'success',
           name: `รายงานปัญหาได้รับการแก้ไข`,
-          msg: `รายงานอุปกรณ์ ${b.equipmentName} ได้รับการตรวจสอบและแก้ไขแล้ว`
+          msg: `รายงานอุปกรณ์ ${b.equipmentName} ได้รับการตรวจสอบและแก้ไขแล้ว`,
+          time: b.createdAt
         });
       }
     });
@@ -246,11 +250,14 @@ export default function App() {
 
   const handleSubmitBooking = (bookingData: Omit<Booking, 'id' | 'ticketCode' | 'createdAt' | 'status'>) => {
     const ticketCode = `SCI-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const newBooking: Booking = {
       ...bookingData,
       id: `booking-${Date.now()}`,
       ticketCode,
-      createdAt: new Date().toLocaleTimeString('th-TH'),
+      createdAt: `${dateStr} ${timeStr}`,
       status: 'pending',
     };
 
@@ -564,11 +571,18 @@ export default function App() {
                                   {al.type === 'success' && <CheckCircle2 size={14} />}
                                   {al.type === 'info' && <Info size={14} />}
                                 </div>
-                                <div className="flex-1">
-                                  <p className={`text-[12px] font-black leading-tight ${titleColor}`}>{al.name}</p>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-1 mb-0.5">
+                                    <p className={`text-[12px] font-black leading-tight ${titleColor}`}>{al.name}</p>
+                                    {al.time && (
+                                      <span className="text-[9px] font-bold text-gray-500 bg-white/90 px-1.5 py-0.5 rounded-md border border-gray-200/80 shrink-0">
+                                        {formatBookingDateTime(al.time)}
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className={`text-[11px] mt-0.5 font-medium leading-relaxed ${textColor}`}>{al.msg}</p>
                                   <button 
-                                    className="text-[10px] bg-white text-gray-700 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1"
+                                    className="text-[10px] bg-white text-gray-700 border border-gray-200 mt-2 font-bold hover:bg-gray-50 hover:text-gray-900 transition px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer"
                                     onClick={() => { setActiveTab(user?.role === 'staff' ? 'admin' : 'profile'); setNotificationsOpen(false); }}
                                   >
                                     {user?.role === 'staff' ? 'ดูรายละเอียดในระบบจัดการ' : 'ดูรายละเอียดในโปรไฟล์'} &rarr;

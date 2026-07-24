@@ -38,7 +38,14 @@ export const listenEquipment = (cb: (data: Equipment[]) => void) => {
 
 export const listenBookings = (cb: (data: Booking[]) => void) => {
   return onSnapshot(bookingsCol, (snap) => {
-    cb(snap.docs.map(d => d.data() as Booking));
+    const list = snap.docs.map(d => d.data() as Booking);
+    list.sort((a, b) => {
+      const numA = parseInt(a.id.replace(/[^0-9]/g, ''), 10) || 0;
+      const numB = parseInt(b.id.replace(/[^0-9]/g, ''), 10) || 0;
+      if (numA !== numB) return numB - numA;
+      return b.id.localeCompare(a.id);
+    });
+    cb(list);
   });
 };
 
