@@ -64,6 +64,7 @@ export default function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -253,13 +254,22 @@ export default function App() {
     });
 
     alertList.sort((a, b) => {
-      if (!a.time && !b.time) return 0;
-      if (!a.time) return 1;
-      if (!b.time) return -1;
-      return new Date(b.time).getTime() - new Date(a.time).getTime();
+      const getTime = (al: any) => {
+        if (!al.time) return 0;
+        if (al.id.includes('penalty-') || al.id.includes('user-')) {
+          return new Date(al.time).getTime() || 0;
+        }
+        const match = al.id.match(/booking-(\d+)/);
+        if (match) return parseInt(match[1], 10);
+        return 0;
+      };
+      return getTime(b) - getTime(a);
     });
 
-    return { alerts: alertList, urgentCount: count };
+    return { 
+      alerts: alertList.filter(al => !dismissedAlertIds.includes(al.id)), 
+      urgentCount: count 
+    };
   };
 
   const { alerts, urgentCount } = getBookingAlerts();
@@ -543,6 +553,12 @@ export default function App() {
     );
   }
 
+  const handleUpdateProfilePicture = (dataUrl: string) => {
+    if (user) {
+      updateUserDb(user.id, { profilePicture: dataUrl });
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -676,7 +692,17 @@ export default function App() {
                                   {al.type === 'success' && <CheckCircle2 size={14} />}
                                   {al.type === 'info' && <Info size={14} />}
                                 </div>
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 relative pr-6">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDismissedAlertIds(prev => [...prev, al.id]);
+                                    }}
+                                    className="absolute -top-1 -right-1 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200/50 rounded-full transition-colors"
+                                    title="ลบการแจ้งเตือน"
+                                  >
+                                    <X size={12} />
+                                  </button>
                                   <div className="flex items-start justify-between gap-1 mb-0.5">
                                     <p className={`text-[12px] font-black leading-tight ${titleColor}`}>{al.name}</p>
                                     {al.time && (
@@ -779,6 +805,7 @@ export default function App() {
                   onNavigateCatalog={() => setActiveTab('catalog')}
                   onCancelBooking={handleCancelBooking}
                   onReportIssue={handleReportIssue}
+                  onUpdateProfilePicture={handleUpdateProfilePicture}
                 />
               </motion.div>
             )}
@@ -865,8 +892,8 @@ export default function App() {
                   usersDb={Object.values(usersDb)}
                   penaltyLogs={penaltyLogs}
                   onUpdateUserStatus={handleUpdateUserStatus}
-                  onResolveIssue={(bookingId) => {
-                    updateBookingDb(bookingId, { issueStatus: 'resolved' });
+                  onResolveIssue={(bookingId, adminReply) => {
+                    updateBookingDb(bookingId, { issueStatus: 'resolved', adminReply });
                   }}
                     bookings={bookings}
                     equipment={equipment}
@@ -909,6 +936,11 @@ export default function App() {
             preselectedItem={preselectedEq}
             onClearPreselected={() => setPreselectedEq(null)}
             onBack={() => { setPreselectedEq(null); setIsBookingOpen(false); }}
+            onViewTickets={() => {
+              setPreselectedEq(null);
+              setIsBookingOpen(false);
+              setActiveTab('profile');
+            }}
             onSubmitBooking={handleSubmitBooking}
             activeBookings={bookings}
             onCancelBooking={handleCancelBooking}

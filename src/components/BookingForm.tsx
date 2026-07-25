@@ -2,8 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Equipment, Booking, User } from '../types';
 import { DEPARTMENTS } from '../data';
-import { ClipboardCheck, QrCode, ArrowLeft, Send, Check, AlertTriangle, RefreshCw, Calendar, Trash2, X, Repeat, Box } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { ClipboardCheck, QrCode, ArrowLeft, Send, Check, AlertTriangle, RefreshCw, Calendar, Trash2, X, Repeat, Package } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface BookingFormProps {
@@ -15,6 +14,7 @@ interface BookingFormProps {
   activeBookings: Booking[];
   onCancelBooking: (bookingId: string) => void;
   currentUser?: User | null;
+  onViewTickets?: () => void;
 }
 
 export default function BookingForm({
@@ -26,61 +26,15 @@ export default function BookingForm({
   activeBookings,
   onCancelBooking,
   currentUser,
+  onViewTickets,
 }: BookingFormProps) {
   const { t, language } = useSettings();
   const [studentName, setStudentName] = useState(currentUser?.name || '');
-
-  const renderSportIcon = (iconName: string, category: string, size = 20) => {
-    const IconComponent = (LucideIcons as any)[iconName] || Box;
-    
-    let bgColor = "bg-gray-100 text-gray-600";
-    if (iconName === 'Activity' || iconName === 'Compass') {
-      bgColor = "bg-emerald-100 text-emerald-600";
-    } else if (iconName === 'Sword') {
-      bgColor = "bg-indigo-100 text-indigo-600";
-    } else if (iconName === 'Disc') {
-      bgColor = "bg-blue-100 text-blue-600";
-    } else if (iconName === 'Dribbble') {
-      bgColor = "bg-amber-100 text-amber-700";
-    } else if (iconName === 'Target') {
-      bgColor = "bg-slate-200 text-slate-700";
-    }
-    
-    return (
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgColor} shrink-0`}>
-        <IconComponent size={size} />
-      </div>
-    );
-  };
-
-  const renderSportIconLarge = (iconName: string, category: string) => {
-    const IconComponent = (LucideIcons as any)[iconName] || Box;
-    
-    let bgColor = "bg-gray-100 text-gray-600";
-    if (iconName === 'Activity' || iconName === 'Compass') {
-      bgColor = "bg-emerald-100 text-emerald-600";
-    } else if (iconName === 'Sword') {
-      bgColor = "bg-indigo-100 text-indigo-600";
-    } else if (iconName === 'Disc') {
-      bgColor = "bg-blue-100 text-blue-600";
-    } else if (iconName === 'Dribbble') {
-      bgColor = "bg-amber-100 text-amber-700";
-    } else if (iconName === 'Target') {
-      bgColor = "bg-slate-200 text-slate-700";
-    }
-    
-    return (
-      <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center border border-gray-200 shadow-sm ${bgColor} shrink-0`}>
-        <IconComponent size={40} />
-      </div>
-    );
-  };
   const [studentId, setStudentId] = useState(currentUser?.id || '');
   const [selectedDept, setSelectedDept] = useState(currentUser?.department || DEPARTMENTS[0]);
   const [selectedEqId, setSelectedEqId] = useState('');
   const [borrowQuantity, setBorrowQuantity] = useState<number>(1);
-  const [returnHour, setReturnHour] = useState('17');
-  const [returnMinute, setReturnMinute] = useState('00');
+  const [returnTime, setReturnTime] = useState('');
   
   const [selectedItem, setSelectedItem] = useState<Equipment | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -121,24 +75,9 @@ export default function BookingForm({
     const defaultTime = new Date();
     defaultTime.setHours(defaultTime.getHours() + 3);
     const hours = String(defaultTime.getHours()).padStart(2, '0');
-    const mins = defaultTime.getMinutes() < 30 ? '00' : '30';
-    setReturnHour(hours);
-    setReturnMinute(mins);
+    const mins = String(defaultTime.getMinutes()).padStart(2, '0');
+    setReturnTime(`${hours}:${mins}`);
   }, []);
-
-  const setTimePresetHours = (addHours: number) => {
-    const target = new Date();
-    target.setHours(target.getHours() + addHours);
-    setReturnHour(String(target.getHours()).padStart(2, '0'));
-    setReturnMinute(target.getMinutes() < 30 ? '00' : '30');
-  };
-
-  const setExactTime = (hourStr: string, minStr: string = '00') => {
-    setReturnHour(hourStr);
-    setReturnMinute(minStr);
-  };
-
-  const returnTime = `${returnHour}:${returnMinute}`;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -222,7 +161,7 @@ export default function BookingForm({
                       onClick={() => { setSelectedEqId(eq.id); setIsChangingEq(false); }}
                       className="text-left p-3 rounded-xl border border-gray-200 bg-white hover:border-[#397d54] hover:shadow-sm transition flex gap-3 items-center"
                     >
-                      {renderSportIcon(eq.icon, eq.category)}
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400"><Package size={20} /></div>
                       <div>
                         <p className="text-xs font-bold text-gray-900 truncate">{language === 'th' ? eq.thaiName : eq.name}</p>
                         <p className="text-[10px] text-[#397d54] font-bold">{t('ว่าง', 'Available')} {eq.availableStock}</p>
@@ -234,7 +173,7 @@ export default function BookingForm({
             ) : (
               selectedItem && (
                 <div className="flex flex-col sm:flex-row gap-4 p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
-                  {renderSportIconLarge(selectedItem.icon, selectedItem.category)}
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-400"><Package size={40} /></div>
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="flex justify-between items-start">
                       <div>
@@ -297,51 +236,8 @@ export default function BookingForm({
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-gray-700 block">{t('เวลาคืน ', 'Return Time (24h)')}</label>
-                    <span className="text-[11px] font-black text-[#397d54] bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                      {returnHour}:{returnMinute} น.
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={returnHour}
-                      onChange={(e) => setReturnHour(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#397d54] cursor-pointer"
-                    >
-                      {[
-                        { h: '08', label: '08:00 น.' },
-                        { h: '09', label: '09:00 น.' },
-                        { h: '10', label: '10:00 น.' },
-                        { h: '11', label: '11:00 น.' },
-                        { h: '12', label: '12:00 น.' },
-                        { h: '13', label: '13:00 น.' },
-                        { h: '14', label: '14:00 น.' },
-                        { h: '15', label: '15:00 น.' },
-                        { h: '16', label: '16:00 น.' },
-                        { h: '17', label: '17:00 น.' },
-                        { h: '18', label: '18:00 น.' },
-                        { h: '19', label: '19:00 น.' },
-                        { h: '20', label: '20:00 น.' },
-                        { h: '21', label: '21:00 น.' },
-                        { h: '22', label: '22:00 น.' },
-                      ].map(opt => (
-                        <option key={opt.h} value={opt.h}>{opt.label}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={returnMinute}
-                      onChange={(e) => setReturnMinute(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#397d54] cursor-pointer"
-                    >
-                      <option value="00">00 นาที</option>
-                      <option value="15">15 นาที</option>
-                      <option value="30">30 นาที</option>
-                      <option value="45">45 นาที</option>
-                    </select>
-                  </div>
+                  <label className="text-xs font-bold text-gray-700 block">{t('เวลาคืน (วันนี้)', 'Return Time')}</label>
+                  <input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-[#397d54]" />
                 </div>
               </div>
 
@@ -354,35 +250,38 @@ export default function BookingForm({
             </form>
           </div>
         ) : (
-          <div className="p-8 text-center space-y-6">
-            <div className="w-20 h-20 bg-emerald-100 text-[#397d54] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check size={40} />
+          <div className="p-8 text-center">
+            <div className="w-24 h-24 bg-emerald-50 border-4 border-emerald-100 text-[#397d54] rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm relative">
+              <div className="absolute inset-0 bg-emerald-400 opacity-20 rounded-full animate-ping"></div>
+              <Check size={48} strokeWidth={3} className="relative z-10" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-gray-900">{t('จองสำเร็จ!', 'Booking Successful!')}</h2>
-              <p className="text-sm text-gray-500 mt-2">{t('สตาฟฟ์กำลังตรวจสอบคำขอของคุณ', 'Staff is reviewing your request.')}</p>
+              <h2 className="text-3xl font-black text-gray-900 mb-2">{t('จองสำเร็จ!', 'Booking Successful!')} {latestTicket && `(${latestTicket.ticketCode})`}</h2>
+              <p className="text-sm font-medium text-gray-500 mb-8">{t("ตั๋วของคุณพร้อมใช้งานใน 'หน้าหลัก' แล้ว", "Your ticket is ready in 'Home'")}</p>
             </div>
             
             {latestTicket && (
-              <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl text-left space-y-3 mx-auto max-w-sm">
-                <div className="flex justify-between border-b border-gray-200 pb-2">
-                  <span className="text-xs text-gray-500 font-bold">{t('รหัสคิว', 'Ticket')}</span>
-                  <span className="text-xs font-black text-gray-900">{latestTicket.ticketCode}</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-200 pb-2">
-                  <span className="text-xs text-gray-500 font-bold">{t('อุปกรณ์', 'Item')}</span>
-                  <span className="text-xs font-bold text-[#397d54]">{latestTicket.equipmentName} x{latestTicket.quantity}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-500 font-bold">{t('เวลาคืน', 'Return By')}</span>
-                  <span className="text-xs font-bold text-gray-900">{latestTicket.returnTime}</span>
-                </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 bg-gray-50 border border-gray-100 p-4 rounded-2xl mx-auto max-w-sm mb-8">
+                 <div className="flex-1 text-right border-r border-gray-200 pr-4">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('รหัสคิว', 'Ticket')}</p>
+                    <p className="text-sm font-black text-gray-900">{latestTicket.ticketCode}</p>
+                 </div>
+                 <div className="flex-1 text-left pl-4">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('อุปกรณ์', 'Equipment')}</p>
+                    <p className="text-sm font-bold text-[#397d54]">{latestTicket.equipmentName} x {latestTicket.quantity}</p>
+                 </div>
               </div>
             )}
 
-            <button onClick={onBack} className="w-full py-3 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-xl transition shadow-sm">
-              {t('กลับสู่หน้าแรก', 'Return to Home')}
-            </button>
+            <div className="space-y-3 max-w-sm mx-auto">
+               <button onClick={onBack} className="w-full py-3.5 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-2xl transition shadow-md flex items-center justify-center gap-2">
+                 {t('ไปที่หน้าหลัก', 'Go to Home')}
+               </button>
+               <button onClick={onViewTickets || onBack} className="w-full py-3.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-sm font-bold rounded-2xl transition shadow-sm flex items-center justify-center gap-2 group">
+                 <span className="group-hover:-translate-x-1 transition-transform">←</span>
+                 {t('View My Tickets', 'View My Tickets')}
+               </button>
+            </div>
           </div>
         )}
       </motion.div>

@@ -33,6 +33,7 @@ export interface Booking {
   issueReported?: boolean;
   issueDetails?: string;
   issueStatus?: 'pending' | 'resolved';
+  adminReply?: string;
 }
 
 export interface ActivityLog {
@@ -50,6 +51,7 @@ export interface User {
   penaltyPoints?: number;
   isBlacklisted?: boolean;
   suspendedUntil?: number; // timestamp in ms
+  profilePicture?: string;
 }
 
 export interface PenaltyLog {

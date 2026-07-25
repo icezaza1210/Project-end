@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Booking, Equipment } from '../types';
-import { Shield, Check, X, Undo2, AlertCircle, Wrench, RefreshCw, Layers, Search, Package, Plus, Minus, Filter } from 'lucide-react';
+import { Shield, Check, X, Undo2, AlertCircle, Wrench, RefreshCw, Layers, Search, Package, Plus, Minus, Filter, Eye, QrCode } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface AdminPanelProps {
@@ -16,7 +16,7 @@ interface AdminPanelProps {
   usersDb?: any[];
   penaltyLogs?: any[];
   onUpdateUserStatus?: (userId: string, penaltyDelta: number, isBlacklisted: boolean, reason: string) => void;
-  onResolveIssue?: (bookingId: string) => void;
+  onResolveIssue?: (bookingId: string, adminReply: string) => void;
 }
 
 export default function AdminPanel({
@@ -43,6 +43,9 @@ export default function AdminPanel({
   const [penaltyAmount, setPenaltyAmount] = useState<number>(10);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void, isDestructive?: boolean, confirmText?: string } | null>(null);
   const [alertDialog, setAlertDialog] = useState<{ title: string; message: string } | null>(null);
+  const [viewingBooking, setViewingBooking] = useState<Booking | null>(null);
+  const [resolvingIssueBooking, setResolvingIssueBooking] = useState<Booking | null>(null);
+  const [adminReplyText, setAdminReplyText] = useState('');
 
   const pendingBookings = bookings.filter((b) => b.status === 'pending');
   const currentActiveBorrows = bookings.filter((b) => b.status === 'approved' || b.status === 'active');
@@ -167,16 +170,20 @@ export default function AdminPanel({
               {activeTab === 'pending' && (
                 filteredPending.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {filteredPending.map((b) => (
+                    {filteredPending.map((b) => {
+                      const requestingUser = usersDb.find(u => u.id === b.studentId);
+                      return (
                       <div key={b.id} className="p-5 bg-white border border-amber-200 rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between h-full">
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#e0ac04]"></div>
                         <div>
                           <div className="flex justify-between items-start mb-3 pl-2">
-                            <div>
-                              <span className="font-extrabold text-sm text-gray-900 block mb-1">{b.equipmentName}</span>
-                              <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-[#e0ac04] rounded-md border border-amber-100 uppercase tracking-wider">
-                                {t('คิว:', 'Ticket:')} {b.ticketCode}
-                              </span>
+                            <div className="flex-1 pr-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-black px-2 py-0.5 bg-amber-100 text-amber-900 rounded-md border border-amber-300 tracking-wider">
+                                  {b.ticketCode}
+                                </span>
+                                <span className="font-extrabold text-sm text-gray-900 truncate">{b.equipmentName}</span>
+                              </div>
                             </div>
                             <div className="text-right">
                               <span className="text-xl font-black text-[#e0ac04]">{b.quantity}</span>
@@ -188,6 +195,14 @@ export default function AdminPanel({
                               <span className="font-bold text-gray-800">{b.studentName}</span> ({b.studentId})
                             </p>
                             <p className="text-[10px] text-gray-500 truncate">{b.department}</p>
+                            {requestingUser && (
+                              <div className="flex gap-2 mt-1 mb-1">
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${requestingUser.penaltyPoints > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                  Penalty: {requestingUser.penaltyPoints} / 500
+                                </span>
+                                {requestingUser.isBlacklisted && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-black text-white">BLACKLISTED</span>}
+                              </div>
+                            )}
                             <p className="text-[10px] text-gray-500 font-medium pt-1 border-t border-gray-200 mt-1">
                               {t('เวลารับ-คืน:', 'Period:')} <span className="text-gray-800 font-bold">{b.borrowTime} - {b.returnTime}</span>
                             </p>
@@ -195,8 +210,16 @@ export default function AdminPanel({
                         </div>
                         <div className="flex items-center gap-2 pl-2">
                           <button
+                            onClick={() => setViewingBooking(b)}
+                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition flex items-center justify-center"
+                            title={t('ดูรายละเอียด', 'View Details')}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
                             onClick={() => onApproveBooking(b.id)}
-                            className="flex-1 py-2 bg-[#397d54] hover:bg-[#2e6242] text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                            disabled={requestingUser?.isBlacklisted}
+                            className={`flex-1 py-2 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm ${requestingUser?.isBlacklisted ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#397d54] hover:bg-[#2e6242]'}`}
                           >
                             <Check size={14} />
                             {t('อนุมัติ', 'Approve')}
@@ -210,7 +233,7 @@ export default function AdminPanel({
                           </button>
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 ) : (
                   <EmptyState title={t('ไม่มีใบจองรออนุมัติ', 'No pending bookings')} />
@@ -225,12 +248,14 @@ export default function AdminPanel({
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#397d54]"></div>
                         <div>
                           <div className="flex justify-between items-start mb-3 pl-2">
-                            <div>
-                              <span className="font-extrabold text-sm text-gray-900 block mb-1">{b.equipmentName}</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-700 rounded-md border border-gray-200">
+                            <div className="flex-1 pr-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-black px-2 py-0.5 bg-gray-900 text-white rounded-md tracking-wider shadow-sm">
                                   {b.ticketCode}
                                 </span>
+                                <span className="font-extrabold text-sm text-gray-900 truncate">{b.equipmentName}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1.5">
                                 {b.status === 'approved' ? (
                                   <span className="text-[9px] font-black px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md border border-amber-200">
                                     {t('รอรับของ', 'Waiting Pickup')}
@@ -256,19 +281,26 @@ export default function AdminPanel({
                             </p>
                           </div>
                         </div>
-                        <div className="pl-2">
+                        <div className="pl-2 flex gap-2">
+                          <button
+                            onClick={() => setViewingBooking(b)}
+                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition flex items-center justify-center"
+                            title={t('ดูรายละเอียด', 'View Details')}
+                          >
+                            <Eye size={16} />
+                          </button>
                           {b.status === 'approved' ? (
                             <button
                               onClick={() => onPickupBooking(b.id)}
-                              className="w-full py-2 bg-[#e0ac04] hover:bg-[#c99a03] text-gray-900 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                              className="flex-1 py-2 bg-[#e0ac04] hover:bg-[#c99a03] text-gray-900 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
                             >
                               <Check size={14} />
-                              {t('ยืนยันการรับอุปกรณ์', 'Confirm Pickup')}
+                              {t('ยืนยันรับของ', 'Confirm Pickup')}
                             </button>
                           ) : (
                             <button
                               onClick={() => onReturnBooking(b.id)}
-                              className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                              className="flex-1 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
                             >
                               <Undo2 size={14} />
                               {t('รับคืนเข้าสต็อก', 'Receive Return')}
@@ -276,11 +308,14 @@ export default function AdminPanel({
                           )}
                           {b.issueReported && b.issueStatus === 'pending' && (
                             <button
-                              onClick={() => onResolveIssue && onResolveIssue(b.id)}
+                              onClick={() => {
+                                setResolvingIssueBooking(b);
+                                setAdminReplyText('');
+                              }}
                               className="w-full mt-2 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
                             >
                               <AlertCircle size={14} />
-                              รับทราบปัญหา ({b.issueDetails})
+                              รับทราบปัญหาและตอบกลับ
                             </button>
                           )}
                         </div>
@@ -682,6 +717,206 @@ export default function AdminPanel({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Booking Details Modal */}
+      {viewingBooking && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden relative"
+          >
+            {/* Header */}
+            <div className="bg-slate-900 px-6 py-5 text-white flex justify-between items-center relative">
+              <div>
+                <h3 className="font-bold text-lg">รายละเอียดตั๋ว (Ticket Details)</h3>
+                <p className="font-mono text-sm opacity-80 mt-1">ID: {viewingBooking.ticketCode}</p>
+              </div>
+              <button onClick={() => setViewingBooking(null)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Student Info */}
+              {(() => {
+                const student = usersDb.find(u => u.id === viewingBooking.studentId);
+                return (
+                  <div className="flex gap-4 items-center mb-6 pb-6 border-b border-gray-100">
+                    <div className="w-14 h-14 bg-emerald-50 rounded-full border-2 border-emerald-100 flex items-center justify-center overflow-hidden shrink-0">
+                      {student?.profilePicture ? (
+                        <img src={student.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl font-black text-[#397d54] uppercase">{viewingBooking.studentName.substring(0, 2)}</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-gray-500 mb-0.5">ผู้ยืม</p>
+                      <p className="text-base font-black text-gray-900 leading-tight">{viewingBooking.studentName}</p>
+                      <p className="text-xs font-medium text-gray-600 mt-0.5">{viewingBooking.studentId} • {viewingBooking.department}</p>
+                    </div>
+                    {student && (
+                      <div className="text-right flex flex-col items-end justify-center">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${student.penaltyPoints > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          Penalty: {student.penaltyPoints}
+                        </span>
+                        {student.isBlacklisted && <span className="text-[9px] mt-1 px-1.5 py-0.5 rounded font-bold bg-black text-white">BLACKLISTED</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Booking Info */}
+              <div className="space-y-4 mb-8">
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                  <div className="flex justify-between items-center mb-3">
+                     <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#397d54]">
+                         <Package size={20} />
+                       </div>
+                       <div>
+                         <p className="font-black text-gray-900">{viewingBooking.equipmentName}</p>
+                         <p className="text-xs text-gray-500 font-bold">จำนวน: {viewingBooking.quantity} ชิ้น</p>
+                       </div>
+                     </div>
+                  </div>
+                  <div className="border-t border-gray-200 pt-3 mt-3 grid grid-cols-2 gap-2 text-xs font-medium">
+                    <div>
+                      <span className="text-gray-500 block mb-0.5">เวลารับ (Borrow)</span>
+                      <span className="text-gray-900 font-bold">{viewingBooking.borrowTime}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-0.5">เวลาคืน (Return)</span>
+                      <span className="text-gray-900 font-bold">{viewingBooking.returnTime}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                {viewingBooking.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => { onApproveBooking(viewingBooking.id); setViewingBooking(null); }}
+                      disabled={usersDb.find(u => u.id === viewingBooking.studentId)?.isBlacklisted}
+                      className="flex-1 py-3.5 bg-[#397d54] hover:bg-[#2e6242] disabled:bg-gray-400 text-white font-bold rounded-xl transition shadow-sm"
+                    >
+                      อนุมัติ (Approve)
+                    </button>
+                    <button
+                      onClick={() => { onRejectBooking(viewingBooking.id); setViewingBooking(null); }}
+                      className="px-6 py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition border border-rose-100"
+                    >
+                      ปฏิเสธ
+                    </button>
+                  </>
+                )}
+                {viewingBooking.status === 'approved' && (
+                  <button
+                    onClick={() => { onPickupBooking(viewingBooking.id); setViewingBooking(null); }}
+                    className="w-full py-3.5 bg-[#e0ac04] hover:bg-[#c99a03] text-gray-900 font-black rounded-xl transition shadow-sm"
+                  >
+                    ยืนยันการรับอุปกรณ์ (Confirm Pickup)
+                  </button>
+                )}
+                {viewingBooking.status === 'active' && (
+                  <button
+                    onClick={() => { onReturnBooking(viewingBooking.id); setViewingBooking(null); }}
+                    className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition shadow-sm"
+                  >
+                    รับคืนเข้าสต็อก (Receive Return)
+                  </button>
+                )}
+                {(viewingBooking.status === 'returned' || viewingBooking.status === 'rejected') && (
+                  <button
+                    onClick={() => setViewingBooking(null)}
+                    className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition"
+                  >
+                    ปิด (Close)
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Issue Resolution Modal */}
+      {resolvingIssueBooking && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden relative"
+          >
+            <div className="bg-amber-500 px-6 py-5 text-white flex justify-between items-center relative">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={20} />
+                <h3 className="font-bold text-lg">จัดการปัญหาการยืม</h3>
+              </div>
+              <button onClick={() => setResolvingIssueBooking(null)} className="w-8 h-8 flex items-center justify-center bg-black/10 hover:bg-black/20 rounded-full transition">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Problem Details */}
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-200">
+                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-amber-600">
+                    <Package size={20} />
+                  </div>
+                  <div>
+                    <p className="font-black text-gray-900">{resolvingIssueBooking.equipmentName}</p>
+                    <p className="text-xs text-gray-500 font-bold">ตั๋ว: {resolvingIssueBooking.ticketCode} • ผู้ยืม: {resolvingIssueBooking.studentName}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">รายละเอียดปัญหาที่แจ้งมา</p>
+                  <p className="text-sm font-medium text-gray-800 bg-white p-3 rounded-xl border border-gray-200">
+                    {resolvingIssueBooking.issueDetails}
+                  </p>
+                </div>
+              </div>
+
+              {/* Reply form */}
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-gray-700 mb-2">ข้อความตอบกลับไปยังผู้ยืม (ออปชั่น)</label>
+                <textarea
+                  value={adminReplyText}
+                  onChange={(e) => setAdminReplyText(e.target.value)}
+                  placeholder="เช่น รับทราบแล้ว ให้นำมาคืนได้เลยครับ หรือ ไม่เป็นไรเดี๋ยวสโมสรจัดการเอง..."
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 min-h-[100px] resize-none transition-all"
+                ></textarea>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setResolvingIssueBooking(null)}
+                  className="px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => {
+                    if (onResolveIssue) {
+                      onResolveIssue(resolvingIssueBooking.id, adminReplyText.trim());
+                    }
+                    setResolvingIssueBooking(null);
+                  }}
+                  className="flex-1 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Check size={18} />
+                  ยืนยันรับทราบปัญหา
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
     </div>
   );
