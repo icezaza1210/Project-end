@@ -65,7 +65,7 @@ export default function BookingForm({
     const item = equipmentList.find((e) => e.id === selectedEqId);
     if (item) {
       setSelectedItem(item);
-      if (borrowQuantity > item.availableStock) {
+      if (borrowQuantity > Math.min(3, item.availableStock)) {
         setBorrowQuantity(item.availableStock > 0 ? 1 : 0);
       }
     }
@@ -87,8 +87,8 @@ export default function BookingForm({
       setFormError(t('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง', 'Please fill in all details correctly.'));
       return;
     }
-    if (selectedItem.status === 'maintenance' || selectedItem.availableStock <= 0 || borrowQuantity <= 0 || borrowQuantity > selectedItem.availableStock) {
-      setFormError(t('อุปกรณ์ไม่พร้อมให้ยืมตามจำนวนที่ระบุ', 'Equipment unavailable for the requested quantity.'));
+    if (selectedItem.status === 'maintenance' || selectedItem.availableStock <= 0 || borrowQuantity <= 0 || borrowQuantity > Math.min(3, selectedItem.availableStock)) {
+      setFormError(t('อุปกรณ์ไม่พร้อมให้ยืมตามจำนวนที่ระบุ (สูงสุด 3 ชิ้น)', 'Equipment unavailable for the requested quantity (max 3).'));
       return;
     }
     if (!returnTime) {
@@ -231,8 +231,8 @@ export default function BookingForm({
                   <label className="text-xs font-bold text-gray-700 block">{t('จำนวนที่ยืม', 'Quantity')}</label>
                   <div className="flex items-center">
                     <button type="button" onClick={() => setBorrowQuantity(p => Math.max(1, p - 1))} className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-l-xl text-gray-600 font-black">-</button>
-                    <input type="number" min="1" max={selectedItem?.availableStock || 1} value={borrowQuantity} onChange={(e) => setBorrowQuantity(Math.max(1, parseInt(e.target.value) || 1))} className="w-full text-center py-2 bg-gray-50 border-y border-gray-200 text-xs font-bold outline-none" />
-                    <button type="button" onClick={() => setBorrowQuantity(p => Math.min(selectedItem?.availableStock || 99, p + 1))} className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-r-xl text-gray-600 font-black">+</button>
+                    <input type="number" min="1" max={Math.min(3, selectedItem?.availableStock || 1)} value={borrowQuantity} onChange={(e) => setBorrowQuantity(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)))} className="w-full text-center py-2 bg-gray-50 border-y border-gray-200 text-xs font-bold outline-none" />
+                    <button type="button" onClick={() => setBorrowQuantity(p => Math.min(Math.min(3, selectedItem?.availableStock || 99), p + 1))} className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-r-xl text-gray-600 font-black">+</button>
                   </div>
                 </div>
                 <div className="space-y-1.5">

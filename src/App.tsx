@@ -64,9 +64,23 @@ export default function App() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
-  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('readNotificationIds');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('dismissedAlertIds');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    localStorage.setItem('readNotificationIds', JSON.stringify(readNotificationIds));
+  }, [readNotificationIds]);
+
+  useEffect(() => {
+    localStorage.setItem('dismissedAlertIds', JSON.stringify(dismissedAlertIds));
+  }, [dismissedAlertIds]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);

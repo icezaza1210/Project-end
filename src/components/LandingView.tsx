@@ -1,12 +1,16 @@
 import React from 'react';
-import { Trophy, ArrowRight, Activity, Calendar, Users, ShoppingBag, ExternalLink } from 'lucide-react';
+import { Trophy, ArrowRight, Activity, Calendar, Users, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSettings } from '../contexts/SettingsContext';
+import RulesSection from './RulesSection';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
 }
 
 export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
+  const { t } = useSettings();
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 font-sans" id="landing-container">
       {/* Navbar */}
@@ -23,9 +27,10 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
           </div>
           
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600">
-            <a href="#" className="text-[#397d54] border-b-2 border-[#397d54] pb-1">หน้าแรก</a>
-            <a href="#about" className="hover:text-[#397d54] transition-colors pb-1">เกี่ยวกับระบบ</a>
-            <a href="#contact" className="hover:text-[#397d54] transition-colors pb-1">ติดต่อเรา</a>
+            <a href="#" className="text-[#397d54] border-b-2 border-[#397d54] pb-1">{t('หน้าแรก', 'Home')}</a>
+            <a href="#about" className="hover:text-[#397d54] transition-colors pb-1">{t('เกี่ยวกับระบบ', 'About')}</a>
+            <a href="#rules" className="hover:text-[#397d54] transition-colors pb-1">{t('กฎระเบียบ', 'Rules')}</a>
+            <a href="#contact" className="hover:text-[#397d54] transition-colors pb-1">{t('ติดต่อเรา', 'Contact')}</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -33,7 +38,7 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               onClick={onNavigateToLogin}
               className="px-5 py-2.5 bg-[#397d54] hover:bg-[#2c5f3f] text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-900/10 flex items-center gap-2 group"
             >
-              เข้าสู่ระบบ / ลงทะเบียน
+              {t('เข้าสู่ระบบ / ลงทะเบียน', 'Login / Register')}
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -59,19 +64,19 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               >
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-bold tracking-wider mb-6 border border-white/20">
                   <span className="w-2 h-2 rounded-full bg-[#e0ac04] animate-pulse"></span>
-                  เปิดให้บริการภาคเรียน 1/2026
+                  {t('เปิดให้บริการภาคเรียน 1/2026', 'Open for Semester 1/2026')}
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
-                  ยืม-คืนอุปกรณ์กีฬา <br /> สะดวก รวดเร็ว
+                  {t('ยืม-คืนอุปกรณ์กีฬา', 'Sports Equipment')} <br /> {t('สะดวก รวดเร็ว', 'Borrow & Return')}
                 </h2>
                 <p className="text-emerald-50 mb-8 max-w-md text-sm md:text-base leading-relaxed opacity-90">
-                  ระบบบริการยืม-คืนอุปกรณ์กีฬาสำหรับนักศึกษาคณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร ตรวจสอบสถานะอุปกรณ์ได้แบบเรียลไทม์ และจองคิวออนไลน์ได้ทันที
+                  {t('ระบบบริการยืม-คืนอุปกรณ์กีฬาสำหรับนักศึกษาคณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร ตรวจสอบสถานะอุปกรณ์ได้แบบเรียลไทม์ และจองคิวออนไลน์ได้ทันที', 'Sports equipment borrowing system for science students, PNRU. Check real-time equipment status and book online instantly.')}
                 </p>
                 <button 
                   onClick={onNavigateToLogin}
                   className="px-8 py-3.5 bg-white text-[#397d54] hover:bg-gray-50 text-sm font-bold rounded-xl transition-all flex items-center gap-2 group shadow-lg"
                 >
-                  เริ่มใช้งานระบบ
+                  {t('เริ่มใช้งานระบบ', 'Get Started')}
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </motion.div>
@@ -92,9 +97,9 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
         {/* Feature Highlights */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20" id="about">
           <div className="text-center mb-16">
-            <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4">บริการของเรา</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4">{t('บริการของเรา', 'Our Services')}</h3>
             <p className="text-gray-500 max-w-2xl mx-auto text-sm md:text-base">
-              อำนวยความสะดวกให้นักศึกษาด้วยระบบจัดการที่ทันสมัย ลดขั้นตอนการทำงาน และเพิ่มประสิทธิภาพในการให้บริการ
+              {t('อำนวยความสะดวกให้นักศึกษาด้วยระบบจัดการที่ทันสมัย ลดขั้นตอนการทำงาน และเพิ่มประสิทธิภาพในการให้บริการ', 'Facilitating students with a modern management system, reducing workflow steps, and improving service efficiency.')}
             </p>
           </div>
           
@@ -103,17 +108,17 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               {
                 icon: <Activity size={24} className="text-[#397d54]" />,
                 title: 'Real-time Tracking',
-                desc: 'ตรวจสอบจำนวนอุปกรณ์กีฬาที่ว่างพร้อมยืมได้ทันทีผ่านระบบออนไลน์ ไม่ต้องเสียเวลามาเช็คด้วยตัวเอง'
+                desc: t('ตรวจสอบจำนวนอุปกรณ์กีฬาที่ว่างพร้อมยืมได้ทันทีผ่านระบบออนไลน์ ไม่ต้องเสียเวลามาเช็คด้วยตัวเอง', 'Check the number of available sports equipment online instantly. No need to waste time checking in person.')
               },
               {
                 icon: <Calendar size={24} className="text-[#397d54]" />,
                 title: 'Online Booking',
-                desc: 'จองคิวยืมอุปกรณ์ล่วงหน้าผ่านระบบ เพื่อความแน่นอนในการนำอุปกรณ์ไปใช้งานตามเวลาที่ต้องการ'
+                desc: t('จองคิวยืมอุปกรณ์ล่วงหน้าผ่านระบบ เพื่อความแน่นอนในการนำอุปกรณ์ไปใช้งานตามเวลาที่ต้องการ', 'Book sports equipment in advance via the system for certainty in using the equipment at the desired time.')
               },
               {
                 icon: <Users size={24} className="text-[#397d54]" />,
                 title: 'Staff Management',
-                desc: 'ระบบจัดการสำหรับสตาฟฟ์สโมสรฯ เพื่อติดตามสถานะการยืม-คืนได้อย่างมีประสิทธิภาพและลดข้อผิดพลาด'
+                desc: t('ระบบจัดการสำหรับสตาฟฟ์สโมสรฯ เพื่อติดตามสถานะการยืม-คืนได้อย่างมีประสิทธิภาพและลดข้อผิดพลาด', 'Management system for club staff to efficiently track borrowing-returning status and reduce errors.')
               }
             ].map((feature, idx) => (
               <motion.div 
@@ -132,6 +137,17 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               </motion.div>
             ))}
           </div>
+        </section>
+
+        {/* Rules Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24" id="rules">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-4">{t('กฎระเบียบการยืม-คืน', 'Borrowing Rules & Policies')}</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-sm leading-relaxed">
+              {t('โปรดศึกษากฎระเบียบและเงื่อนไขการใช้งานอย่างละเอียด เพื่อรักษาสิทธิ์ของตัวท่านเองและส่วนรวม', 'Please read the borrowing rules and terms carefully to protect your rights and those of others.')}
+            </p>
+          </div>
+          <RulesSection />
         </section>
       </main>
 
@@ -155,7 +171,8 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               <h3 className="text-lg font-bold">ติดต่อสโมสรฯ</h3>
               <ul className="space-y-4 text-sm text-emerald-100/80 font-light">
                 <li>อาคารคณะวิทยาศาสตร์ ชั้น 1<br/>ห้องสโมสรนักศึกษา</li>
-                <li>02-544-8456</li>
+                <li>scisports@pnru.ac.th</li>
+                <li>+66 2 123 4567</li>
               </ul>
             </div>
             
@@ -163,30 +180,27 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
             <div className="space-y-6">
               <h3 className="text-lg font-bold">เมนูลัด</h3>
               <ul className="space-y-4 text-sm text-emerald-100/80 font-light">
-                <li>
-                  <button onClick={onNavigateToLogin} className="hover:text-white transition-colors text-left">
-                    เข้าสู่ระบบ
-                  </button>
-                </li>
+                <li><a href="#" className="hover:text-white transition-colors">เข้าสู่ระบบ</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">กฎระเบียบการยืม-คืน</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">ติดต่อแจ้งปัญหา</a></li>
               </ul>
             </div>
 
-            {/* Faculty Link Col */}
+            {/* Newsletter/Action Col */}
             <div className="space-y-6">
-              <h3 className="text-lg font-bold">เว็บไซต์คณะ</h3>
+              <h3 className="text-lg font-bold">แจ้งเตือนข่าวสาร</h3>
               <p className="text-sm text-emerald-100/80 font-light">
-                ติดตามข่าวสารและข้อมูลเพิ่มเติมของคณะวิทยาศาสตร์
+                รับข่าวสารเกี่ยวกับการแข่งขันกีฬาและอุปกรณ์ใหม่ๆ
               </p>
-              <div>
-                <a 
-                  href="https://sci.pnru.ac.th" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-700/60 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold border border-emerald-500/30 transition-all hover:shadow-md"
-                >
-                  <span>เว็บไซต์คณะวิทยาศาสตร์</span>
-                  <ExternalLink size={16} />
-                </a>
+              <div className="relative">
+                <input 
+                  type="email" 
+                  placeholder="กรอกอีเมลของคุณ" 
+                  className="w-full bg-transparent border border-emerald-400/50 rounded-xl px-4 py-3 text-sm text-white placeholder-emerald-200/50 focus:outline-none focus:border-white transition-colors"
+                />
+                <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-colors">
+                  <ArrowRight size={18} className="text-white" />
+                </button>
               </div>
             </div>
           </div>
