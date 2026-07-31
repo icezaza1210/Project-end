@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Booking, Equipment } from '../types';
 import { Shield, Check, X, Undo2, AlertCircle, Wrench, RefreshCw, Layers, Search, Package, Plus, Minus, Filter, Eye, QrCode } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { getEquipmentImage } from '../lib/equipmentImages';
 
 interface AdminPanelProps {
   bookings: Booking[];
@@ -400,12 +401,26 @@ export default function AdminPanel({
                 {equipment.map((item) => {
                   const isMaintenance = item.status === 'maintenance';
                   return (
-                    <div key={item.id} className="p-4 border border-gray-200 rounded-2xl hover:border-[#397d54]/30 transition-colors bg-gray-50/50">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-sm text-gray-900 leading-tight">{language === 'th' ? item.thaiName : item.name}</h4>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 font-bold uppercase tracking-wider">{item.category}</span>
+                    <div key={item.id} className="p-4 border border-gray-200 rounded-2xl hover:border-[#397d54]/30 transition-colors bg-gray-50/50 flex flex-col justify-between">
+                      <div>
+                        <div className="flex gap-3 items-center mb-3">
+                          <div className="w-12 h-12 rounded-xl bg-gray-200 overflow-hidden shrink-0 border border-gray-200 shadow-sm">
+                            <img 
+                              src={getEquipmentImage(item)} 
+                              alt={item.thaiName} 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-bold text-sm text-gray-900 leading-tight truncate">{language === 'th' ? item.thaiName : item.name}</h4>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 font-bold uppercase tracking-wider shrink-0 ml-1">{item.category}</span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 truncate mt-0.5">{item.location}</p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-gray-500 mb-4 truncate">{item.location}</p>
                       
                       <div className="flex items-center justify-between border-t border-gray-200 pt-3">
                         <div className="flex items-center gap-2">

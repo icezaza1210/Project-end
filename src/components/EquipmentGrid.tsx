@@ -4,6 +4,7 @@ import { Equipment } from '../types';
 import { Search, Box } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { getEquipmentImage } from '../lib/equipmentImages';
 
 interface EquipmentGridProps {
   equipment: Equipment[];
@@ -152,10 +153,21 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
                 className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col"
                 id={`eq-card-${item.id}`}
               >
-                {/* Top Half: Icon & Status */}
-                <div className="bg-gray-50/80 px-5 py-4 flex justify-between items-start border-b border-gray-100/50">
-                  {renderSportIcon(item.icon, item.category)}
-                  {renderStatusBadge(item.status)}
+                {/* Top Half: Image & Status */}
+                <div className="relative h-44 bg-gray-100 overflow-hidden border-b border-gray-100/50 group">
+                  <img 
+                    src={getEquipmentImage(item)} 
+                    alt={item.thaiName} 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none"></div>
+                  <div className="absolute top-3 right-3 z-10 shadow-sm">
+                    {renderStatusBadge(item.status)}
+                  </div>
+                  <div className="absolute top-3 left-3 z-10">
+                    {renderSportIcon(item.icon, item.category)}
+                  </div>
                 </div>
 
                 {/* Bottom Half: Details */}

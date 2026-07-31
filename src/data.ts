@@ -11,7 +11,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 2',
     description: 'ลูกฟุตบอลหนังเย็บ PU ทนทานสูง สำหรับสนามหญ้าและสนามดิน',
-    icon: 'Activity'
+    icon: 'Activity',
+    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 'eq-2',
@@ -23,7 +24,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ B - ตะกร้าซ้าย',
     description: 'ไม้แบดน้ำหนักเบา เฟรมคาร์บอนไฟเบอร์ ควบคุมทิศทางได้แม่นยำ',
-    icon: 'Sword'
+    icon: 'Sword',
+    image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 'eq-3',
@@ -35,7 +37,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 3',
     description: 'ลูกวอลเลย์บอลรุ่นแข่งขัน หนังนุ่มสัมผัสเยี่ยม ไม่เจ็บแขน',
-    icon: 'Disc'
+    icon: 'Disc',
+    image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 'eq-4',
@@ -47,7 +50,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 2',
     description: 'ลูกฟุตซอลเบอร์ 3.5 แรงกระดอนต่ำ เหมาะกับพื้นปูนใบพัดสโมฯ',
-    icon: 'Compass'
+    icon: 'Compass',
+    image: 'https://6319nophawanblog.wordpress.com/wp-content/uploads/2017/02/160923b4u11950.jpg'
   },
   {
     id: 'eq-5',
@@ -59,7 +63,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ B - ชั้นล่าง',
     description: 'ลูกตะกร้อใยสังเคราะห์สำหรับแข่งขันและฝึกซ้อม มีความยืดหยุ่นและการสปริงตัวที่ดีเยี่ยม',
-    icon: 'Takraw'
+    icon: 'Takraw',
+    image: 'https://library.sportingnews.com/styles/crop_style_16_9_desktop_webp/s3/2024-08/GettyImages-2154256230.jpg.webp?itok=2CsCO-Cm'
   },
   {
     id: 'eq-6',
@@ -71,7 +76,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'กล่องเหล็กมุมห้องสโมฯ',
     description: 'ลูกเปตองชุบโครเมี่ยมลายเส้นมาตรฐาน พร้อมลูกแก่นและเชือกวัดระยะ',
-    icon: 'Target'
+    icon: 'Target',
+    image: 'https://www.newsportolympic.com/wp-content/uploads/2021/02/shutterstock_1101388403-scaled.jpg'
   }
 ];
 

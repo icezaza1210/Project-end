@@ -13,6 +13,7 @@ export interface Equipment {
   location: string;
   description: string;
   icon: string;
+  image?: string;
 }
 
 export type BookingStatus = 'pending' | 'approved' | 'active' | 'returned' | 'rejected';
