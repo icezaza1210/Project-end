@@ -70,19 +70,19 @@ export default function HeroBanner() {
           className="absolute inset-0 flex flex-col md:flex-row z-10"
         >
           {/* Content */}
-          <div className="p-8 md:p-10 lg:p-12 md:w-[60%] lg:w-[65%] flex flex-col justify-center h-full">
-            <div className="inline-flex items-center gap-2 bg-white/15 border border-white/20 rounded-full px-3 py-1 w-fit mb-5 backdrop-blur-sm">
-              <Megaphone size={12} className="text-white" />
+          <div className="p-5 sm:p-8 md:p-10 lg:p-12 pb-14 sm:pb-16 md:w-[60%] lg:w-[65%] flex flex-col justify-center h-full">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white/15 border border-white/20 rounded-full px-2.5 sm:px-3 py-0.5 sm:py-1 w-fit mb-3 sm:mb-5 backdrop-blur-sm">
+              <Megaphone size={12} className="text-white shrink-0" />
               <span className="text-[10px] sm:text-xs font-bold text-white tracking-wide uppercase">
                 {language === 'th' ? current.badge : current.badgeEn}
               </span>
             </div>
             
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-[1.3] tracking-tight mb-4 text-balance">
+            <h2 className="text-lg sm:text-2xl lg:text-4xl font-black text-white leading-snug sm:leading-[1.3] tracking-tight mb-2 sm:mb-4 text-balance">
               {language === 'th' ? current.title : current.titleEn}
             </h2>
             
-            <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-[90%] font-medium">
+            <p className="text-white/80 text-[11px] sm:text-sm leading-relaxed max-w-[95%] sm:max-w-[90%] font-medium line-clamp-2 sm:line-clamp-none">
               {language === 'th' ? current.desc : current.descEn}
             </p>
           </div>
@@ -107,34 +107,34 @@ export default function HeroBanner() {
       </AnimatePresence>
 
       {/* Navigation Controls */}
-      <div className="absolute bottom-6 left-8 md:left-10 lg:left-12 z-20 flex items-center gap-3">
+      <div className="absolute bottom-3 sm:bottom-6 left-5 sm:left-8 md:left-10 lg:left-12 z-20 flex items-center gap-2 sm:gap-3">
         {announcements.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setCurrentIndex(idx)}
             className={`transition-all duration-300 rounded-full ${
-              idx === currentIndex ? 'w-6 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
+              idx === currentIndex ? 'w-5 sm:w-6 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
             }`}
           />
         ))}
       </div>
       
-      <div className="absolute bottom-5 right-6 md:right-8 z-20 flex items-center gap-2">
-        <button onClick={prevSlide} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition">
-          <ChevronLeft size={16} />
+      <div className="absolute bottom-3 sm:bottom-5 right-4 sm:right-6 md:right-8 z-20 flex items-center gap-1.5 sm:gap-2">
+        <button onClick={prevSlide} className="p-1 sm:p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition">
+          <ChevronLeft size={14} className="sm:w-4 sm:h-4" />
         </button>
-        <button onClick={nextSlide} className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition">
-          <ChevronRight size={16} />
+        <button onClick={nextSlide} className="p-1 sm:p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition">
+          <ChevronRight size={14} className="sm:w-4 sm:h-4" />
         </button>
       </div>
 
       {/* Maintain Height */}
-      <div className="invisible p-8 md:p-10 lg:p-12 md:w-[60%] lg:w-[65%] flex flex-col justify-center min-h-[280px]">
-        <div className="inline-flex items-center gap-2 px-3 py-1 mb-5">
+      <div className="invisible p-5 sm:p-8 md:p-10 lg:p-12 pb-14 sm:pb-16 md:w-[60%] lg:w-[65%] flex flex-col justify-center min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
+        <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 sm:mb-5">
            <span className="text-xs">Placeholder</span>
         </div>
-        <h2 className="text-3xl lg:text-4xl mb-4">Placeholder Title That Might Be Two Lines Long</h2>
-        <p className="text-sm">Placeholder description to keep the height consistent across slides.</p>
+        <h2 className="text-lg sm:text-2xl lg:text-4xl mb-2 sm:mb-4">Placeholder Title That Might Be Two Lines Long</h2>
+        <p className="text-xs sm:text-sm">Placeholder description to keep the height consistent across slides.</p>
       </div>
     </div>
   );

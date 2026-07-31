@@ -15,14 +15,14 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
     <div className="min-h-screen flex flex-col bg-gray-50 font-sans" id="landing-container">
       {/* Navbar */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#397d54] to-[#245236] rounded-xl flex items-center justify-center shadow-sm">
-              <Trophy size={20} className="text-white" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-[#397d54] to-[#245236] rounded-xl flex items-center justify-center shadow-sm shrink-0">
+              <Trophy size={18} className="text-white sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h1 className="text-lg font-black tracking-tight text-gray-900 leading-tight">SCI-SPORTS</h1>
-              <p className="text-[10px] font-bold text-emerald-700 tracking-widest uppercase">Borrow System</p>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-lg font-black tracking-tight text-gray-900 leading-tight truncate">SCI-SPORTS</h1>
+              <p className="text-[9px] sm:text-[10px] font-bold text-emerald-700 tracking-wider uppercase truncate">Borrow System • สโมสรนักศึกษา</p>
             </div>
           </div>
           
@@ -33,13 +33,14 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
             <a href="#contact" className="hover:text-[#397d54] transition-colors pb-1">{t('ติดต่อเรา', 'Contact')}</a>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <button 
               onClick={onNavigateToLogin}
-              className="px-5 py-2.5 bg-[#397d54] hover:bg-[#2c5f3f] text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-900/10 flex items-center gap-2 group"
+              className="px-3 sm:px-5 py-2 sm:py-2.5 bg-[#397d54] hover:bg-[#2c5f3f] text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-900/10 flex items-center gap-1.5 sm:gap-2 group whitespace-nowrap"
             >
-              {t('เข้าสู่ระบบ / ลงทะเบียน', 'Login / Register')}
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              <span>{t('เข้าสู่ระบบ', 'Login')}</span>
+              <span className="hidden sm:inline">{t(' / ลงทะเบียน', ' / Register')}</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
@@ -48,36 +49,36 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
       {/* Main Content */}
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-          <div className="bg-[#397d54] rounded-3xl overflow-hidden relative shadow-xl shadow-emerald-900/10 min-h-[400px] flex items-center">
+        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 md:py-12">
+          <div className="bg-[#397d54] rounded-2xl sm:rounded-3xl overflow-hidden relative shadow-xl shadow-emerald-900/10 min-h-[350px] sm:min-h-[400px] flex items-center">
             {/* Decorative background */}
             <div className="absolute inset-0 z-0">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-transparent"></div>
               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
             </div>
             
-            <div className="relative z-10 px-8 md:px-16 py-12 md:w-1/2 text-white">
+            <div className="relative z-10 px-5 sm:px-8 md:px-16 py-8 sm:py-12 md:w-1/2 text-white">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-bold tracking-wider mb-6 border border-white/20">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-bold tracking-wider mb-4 sm:mb-6 border border-white/20">
                   <span className="w-2 h-2 rounded-full bg-[#e0ac04] animate-pulse"></span>
                   {t('เปิดให้บริการภาคเรียน 1/2026', 'Open for Semester 1/2026')}
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 leading-tight">
                   {t('ยืม-คืนอุปกรณ์กีฬา', 'Sports Equipment')} <br /> {t('สะดวก รวดเร็ว', 'Borrow & Return')}
                 </h2>
-                <p className="text-emerald-50 mb-8 max-w-md text-sm md:text-base leading-relaxed opacity-90">
+                <p className="text-emerald-50 mb-6 sm:mb-8 max-w-md text-xs sm:text-sm md:text-base leading-relaxed opacity-90">
                   {t('ระบบบริการยืม-คืนอุปกรณ์กีฬาสำหรับนักศึกษาคณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร ตรวจสอบสถานะอุปกรณ์ได้แบบเรียลไทม์ และจองคิวออนไลน์ได้ทันที', 'Sports equipment borrowing system for science students, PNRU. Check real-time equipment status and book online instantly.')}
                 </p>
                 <button 
                   onClick={onNavigateToLogin}
-                  className="px-8 py-3.5 bg-white text-[#397d54] hover:bg-gray-50 text-sm font-bold rounded-xl transition-all flex items-center gap-2 group shadow-lg"
+                  className="px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-[#397d54] hover:bg-gray-50 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-2 group shadow-lg"
                 >
                   {t('เริ่มใช้งานระบบ', 'Get Started')}
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform sm:w-[18px] sm:h-[18px]" />
                 </button>
               </motion.div>
             </div>

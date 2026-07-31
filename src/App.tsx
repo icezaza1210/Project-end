@@ -580,64 +580,64 @@ export default function App() {
     <div className="min-h-screen bg-[#e3e3e4] text-gray-800 font-sans selection:bg-[#397d54] selection:text-white" id="main-layout">
       {/* Primary Sporty Nav Header */}
       <header className="bg-white border-b border-gray-300 sticky top-0 z-40" id="global-header">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="header-container">
-          <div className="flex justify-between items-center h-16" id="header-flex">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8" id="header-container">
+          <div className="flex justify-between items-center min-h-[56px] sm:h-16 py-2 sm:py-0 gap-1.5 sm:gap-3" id="header-flex">
             {/* Logo/Identity */}
-            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('catalog')} id="logo-block">
-              <div className="w-10 h-10 bg-[#397d54] rounded-xl flex items-center justify-center border border-emerald-500/10 shadow-sm" id="logo-icon-wrap">
-                <Trophy className="text-[#e0ac04]" size={20} />
+            <div className="flex items-center gap-2 cursor-pointer shrink-0 min-w-0" onClick={() => setActiveTab('catalog')} id="logo-block">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#397d54] rounded-xl flex items-center justify-center border border-emerald-500/10 shadow-sm shrink-0" id="logo-icon-wrap">
+                <Trophy className="text-[#e0ac04] w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <h1 className="text-sm font-extrabold text-gray-900 tracking-tight flex items-center gap-1">
-                  SCI-SPORTS
-                  <span className="text-[10px] bg-emerald-50 text-[#397d54] border border-emerald-100 px-1.5 py-0.5 rounded-full font-black">สโมสรนักศึกษา</span>
+              <div className="min-w-0">
+                <h1 className="text-xs sm:text-sm font-extrabold text-gray-900 tracking-tight flex items-center gap-1 flex-wrap leading-tight">
+                  <span className="truncate">SCI-SPORTS</span>
+                  <span className="text-[8px] sm:text-[10px] bg-emerald-50 text-[#397d54] border border-emerald-100 px-1 sm:px-1.5 py-0.5 rounded-full font-black whitespace-nowrap">สโมสรนักศึกษา</span>
                 </h1>
-                <p className="text-[10px] text-gray-500 font-semibold tracking-wide">คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร</p>
+                <p className="text-[8px] sm:text-[10px] text-gray-500 font-semibold tracking-wide truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none">คณะวิทยาศาสตร์ มหาวิทยาลัยราชภัฏพระนคร</p>
               </div>
             </div>
 
-            {/* Desktop Navigation Menu & User Widget */}
-            <div className="flex items-center gap-3" id="nav-and-user-block">
-              <nav className="flex items-center h-full gap-1" id="nav-menu">
+            {/* Navigation Menu & User Widget */}
+            <div className="flex items-center gap-1 sm:gap-3 shrink-0" id="nav-and-user-block">
+              <nav className="flex items-center h-full gap-0.5 sm:gap-1" id="nav-menu">
                 <button
                   onClick={() => { setActiveTab('catalog'); setPreselectedEq(null); }}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 ${
                     activeTab === 'catalog'
                       ? 'bg-[#397d54] text-white shadow-sm'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                   id="btn-nav-catalog"
                 >
-                  <Compass size={14} />
-                  {t('ตรวจสอบอุปกรณ์', 'Equipment')}
+                  <Compass size={13} className="shrink-0" />
+                  <span className="hidden sm:inline">{t('ตรวจสอบอุปกรณ์', 'Equipment')}</span>
+                  <span className="sm:hidden">{t('อุปกรณ์', 'Eq')}</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('rules'); setPreselectedEq(null); }}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 ${
                     activeTab === 'rules'
                       ? 'bg-[#397d54] text-white shadow-sm'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                   id="btn-nav-rules"
                 >
-                  <ClipboardList size={14} />
-                  {t('กฎระเบียบ', 'Rules')}
+                  <ClipboardList size={13} className="shrink-0" />
+                  <span className="hidden sm:inline">{t('กฎระเบียบ', 'Rules')}</span>
+                  <span className="sm:hidden">{t('กฎ', 'Rules')}</span>
                 </button>
                 
-                
-
                 {user.role === 'staff' && (
                   <button
                     onClick={() => setActiveTab('admin')}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1 ${
                       activeTab === 'admin'
                         ? 'bg-gray-900 text-white shadow-sm'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                     id="btn-nav-admin"
                   >
-                    <Shield size={14} className="text-[#e0ac04]" />
-                    {t('สตาฟฟ์สโมฯ', 'Staff')}
+                    <Shield size={13} className="text-[#e0ac04] shrink-0" />
+                    <span>{t('สตาฟฟ์', 'Staff')}</span>
                   </button>
                 )}
               </nav>
