@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { User, Booking } from '../types';
 import { User as UserIcon, Calendar, CheckCircle2, Clock, XCircle, Package, ArrowRight, Activity, Award, Check, AlertTriangle, Camera, QrCode, Eye, X } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { getEquipmentImage } from '../lib/equipmentImages';
 
 interface StudentProfileProps {
   user: User;
@@ -390,16 +391,25 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
                 {[...pending, ...approved].map(booking => (
                   <div key={booking.id} className="p-5 rounded-2xl border border-gray-200 bg-white hover:border-[#397d54]/50 hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group relative overflow-hidden">
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${booking.status === 'pending' ? 'bg-amber-400' : 'bg-[#397d54]'}`}></div>
-                    <div className="pl-2 flex-1">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="font-mono text-xs font-extrabold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{booking.ticketCode}</span>
-                        {getStatusBadge(booking.status)}
+                    <div className="pl-2 flex-1 flex gap-4 items-start sm:items-center">
+                      <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200 shadow-sm hidden sm:block">
+                        <img 
+                          src={getEquipmentImage({ name: booking.equipmentName, thaiName: booking.equipmentName })} 
+                          alt={booking.equipmentName} 
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <h4 className="font-black text-base text-gray-900">{booking.equipmentName}</h4>
-                      <div className="flex flex-wrap gap-4 mt-2 text-xs font-medium text-gray-500">
-                        <span className="flex items-center gap-1.5"><Package size={14} /> {booking.quantity} ชิ้น</span>
-                        <span className="flex items-center gap-1.5"><Clock size={14} /> คืน: <strong className="text-gray-800">{booking.returnTime}</strong> {booking.status === 'active' && getCountdownText(booking.returnTime)}</span>
-                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="font-mono text-xs font-extrabold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{booking.ticketCode}</span>
+                          {getStatusBadge(booking.status)}
+                        </div>
+                        <h4 className="font-black text-base text-gray-900">{booking.equipmentName}</h4>
+                        <div className="flex flex-wrap gap-4 mt-2 text-xs font-medium text-gray-500">
+                          <span className="flex items-center gap-1.5"><Package size={14} /> {booking.quantity} ชิ้น</span>
+                          <span className="flex items-center gap-1.5"><Clock size={14} /> คืน: <strong className="text-gray-800">{booking.returnTime}</strong> {booking.status === 'active' && getCountdownText(booking.returnTime)}</span>
+                        </div>
                       {booking.issueReported && (
                         <div className="mt-2 text-xs font-bold bg-amber-50 p-2.5 rounded-xl border border-amber-100 flex flex-col gap-1.5">
                            <div className="text-amber-800 flex items-center gap-1.5">
@@ -414,6 +424,7 @@ export default function StudentProfile({ user, bookings, onNavigateCatalog, onCa
                            )}
                         </div>
                       )}
+                      </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                       <button 

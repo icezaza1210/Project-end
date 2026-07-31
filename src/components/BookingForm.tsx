@@ -4,6 +4,7 @@ import { Equipment, Booking, User } from '../types';
 import { DEPARTMENTS } from '../data';
 import { ClipboardCheck, QrCode, ArrowLeft, Send, Check, AlertTriangle, RefreshCw, Calendar, Trash2, X, Repeat, Package } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { getEquipmentImage } from '../lib/equipmentImages';
 
 interface BookingFormProps {
   equipmentList: Equipment[];
@@ -159,10 +160,17 @@ export default function BookingForm({
                     <button
                       key={eq.id}
                       onClick={() => { setSelectedEqId(eq.id); setIsChangingEq(false); }}
-                      className="text-left p-3 rounded-xl border border-gray-200 bg-white hover:border-[#397d54] hover:shadow-sm transition flex gap-3 items-center"
+                      className="text-left p-2.5 rounded-xl border border-gray-200 bg-white hover:border-[#397d54] hover:shadow-sm transition flex gap-3 items-center overflow-hidden"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400"><Package size={20} /></div>
-                      <div>
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                        <img 
+                          src={getEquipmentImage(eq)} 
+                          alt={eq.thaiName} 
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
                         <p className="text-xs font-bold text-gray-900 truncate">{language === 'th' ? eq.thaiName : eq.name}</p>
                         <p className="text-[10px] text-[#397d54] font-bold">{t('ว่าง', 'Available')} {eq.availableStock}</p>
                       </div>
@@ -173,7 +181,14 @@ export default function BookingForm({
             ) : (
               selectedItem && (
                 <div className="flex flex-col sm:flex-row gap-4 p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-400"><Package size={40} /></div>
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden shrink-0">
+                    <img 
+                      src={getEquipmentImage(selectedItem)} 
+                      alt={selectedItem.thaiName} 
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="flex justify-between items-start">
                       <div>

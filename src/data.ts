@@ -11,7 +11,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 2',
     description: 'ลูกฟุตบอลหนังเย็บ PU ทนทานสูง สำหรับสนามหญ้าและสนามดิน',
-    icon: 'Activity'
+    icon: 'Activity',
+    image: 'https://png.pngtree.com/thumb_back/fh260/background/20240104/pngtree-soccer-football-ball-nestled-in-the-corner-of-a-vibrant-green-image_13926994.png'
   },
   {
     id: 'eq-2',
@@ -23,7 +24,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ B - ตะกร้าซ้าย',
     description: 'ไม้แบดน้ำหนักเบา เฟรมคาร์บอนไฟเบอร์ ควบคุมทิศทางได้แม่นยำ',
-    icon: 'Sword'
+    icon: 'Sword',
+    image: 'https://www.thaiheartfound.org/upload/26025/userfiles/Apr5.jpg'
   },
   {
     id: 'eq-3',
@@ -35,7 +37,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 3',
     description: 'ลูกวอลเลย์บอลรุ่นแข่งขัน หนังนุ่มสัมผัสเยี่ยม ไม่เจ็บแขน',
-    icon: 'Disc'
+    icon: 'Disc',
+    image: 'https://i.pinimg.com/1200x/34/9c/a6/349ca67d5d8d4b695bd0a3de71893040.jpg'
   },
   {
     id: 'eq-4',
@@ -47,7 +50,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 2',
     description: 'ลูกฟุตซอลเบอร์ 3.5 แรงกระดอนต่ำ เหมาะกับพื้นปูนใบพัดสโมฯ',
-    icon: 'Compass'
+    icon: 'Compass',
+    image: 'https://6319nophawanblog.wordpress.com/wp-content/uploads/2017/02/160923b4u11950.jpg'
   },
   {
     id: 'eq-5',
@@ -59,7 +63,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'ตู้เก็บอุปกรณ์ B - ชั้นล่าง',
     description: 'ลูกตะกร้อใยสังเคราะห์สำหรับแข่งขันและฝึกซ้อม มีความยืดหยุ่นและการสปริงตัวที่ดีเยี่ยม',
-    icon: 'Takraw'
+    icon: 'Takraw',
+    image: 'https://www.educatepark.com/wp-content/uploads/2017/08/takraw-thai-03.jpg'
   },
   {
     id: 'eq-6',
@@ -71,7 +76,8 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     status: 'available',
     location: 'กล่องเหล็กมุมห้องสโมฯ',
     description: 'ลูกเปตองชุบโครเมี่ยมลายเส้นมาตรฐาน พร้อมลูกแก่นและเชือกวัดระยะ',
-    icon: 'Target'
+    icon: 'Target',
+    image: 'https://resource.nationtv.tv/uploads/images/md/2025/09/clPFWdTNCfGMj5oas9uT.webp?x-image-process=style/lg'
   }
 ];
 

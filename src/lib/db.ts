@@ -2,6 +2,7 @@ import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, wri
 import { db } from '../firebase';
 import { Equipment, Booking, ActivityLog, User, PenaltyLog } from '../types';
 import { INITIAL_EQUIPMENT, INITIAL_LOGS } from '../data';
+import { getEquipmentImage } from './equipmentImages';
 
 // Collections
 export const usersCol = collection(db, 'users');
@@ -10,13 +11,16 @@ export const bookingsCol = collection(db, 'bookings');
 export const logsCol = collection(db, 'logs');
 export const penaltyLogsCol = collection(db, 'penalty_logs');
 
-// Seed Database if empty
+// Seed Database if empty or backfill missing fields
 export const seedDatabase = async () => {
   const eqSnap = await getDocs(equipmentCol);
   if (eqSnap.empty) {
     const batch = writeBatch(db);
     INITIAL_EQUIPMENT.forEach(eq => {
-      batch.set(doc(equipmentCol, eq.id), eq);
+      batch.set(doc(equipmentCol, eq.id), {
+        ...eq,
+        image: eq.image || getEquipmentImage(eq)
+      });
     });
     
     INITIAL_LOGS.forEach(log => {
@@ -27,13 +31,34 @@ export const seedDatabase = async () => {
     batch.set(doc(usersCol, 'STAFF-MAIN'), { id: 'STAFF-MAIN', name: 'สตาฟฟ์สโมสรฯ', role: 'staff', department: 'ส่วนกลาง', penaltyPoints: 0, isBlacklisted: false });
 
     await batch.commit();
+  } else {
+    // Sync image field for existing docs if needed
+    const batch = writeBatch(db);
+    let updated = false;
+    eqSnap.docs.forEach(docSnap => {
+      const data = docSnap.data() as Equipment;
+      const correctImg = getEquipmentImage(data);
+      if (data.image !== correctImg) {
+        batch.update(doc(equipmentCol, data.id), { image: correctImg });
+        updated = true;
+      }
+    });
+    if (updated) {
+      await batch.commit();
+    }
   }
 };
 
 // Listeners
 export const listenEquipment = (cb: (data: Equipment[]) => void) => {
   return onSnapshot(equipmentCol, (snap) => {
-    cb(snap.docs.map(d => d.data() as Equipment));
+    cb(snap.docs.map(d => {
+      const eq = d.data() as Equipment;
+      return {
+        ...eq,
+        image: getEquipmentImage(eq)
+      };
+    }));
   });
 };
 
