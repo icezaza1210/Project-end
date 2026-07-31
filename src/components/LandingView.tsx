@@ -171,8 +171,12 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               <h3 className="text-lg font-bold">ติดต่อสโมสรฯ</h3>
               <ul className="space-y-4 text-sm text-emerald-100/80 font-light">
                 <li>อาคารคณะวิทยาศาสตร์ ชั้น 1<br/>ห้องสโมสรนักศึกษา</li>
-                <li>scisports@pnru.ac.th</li>
-                <li>+66 2 123 4567</li>
+                <li>
+                  <a href="https://sci.pnru.ac.th" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-emerald-400/50 underline-offset-2">
+                    https://sci.pnru.ac.th
+                  </a>
+                </li>
+                <li>02-544-8456</li>
               </ul>
             </div>
             
@@ -180,9 +184,11 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
             <div className="space-y-6">
               <h3 className="text-lg font-bold">เมนูลัด</h3>
               <ul className="space-y-4 text-sm text-emerald-100/80 font-light">
-                <li><a href="#" className="hover:text-white transition-colors">เข้าสู่ระบบ</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">กฎระเบียบการยืม-คืน</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">ติดต่อแจ้งปัญหา</a></li>
+                <li>
+                  <button onClick={onNavigateToLogin} className="hover:text-white transition-colors text-left cursor-pointer">
+                    เข้าสู่ระบบ
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -192,16 +198,15 @@ export default function LandingView({ onNavigateToLogin }: LandingViewProps) {
               <p className="text-sm text-emerald-100/80 font-light">
                 รับข่าวสารเกี่ยวกับการแข่งขันกีฬาและอุปกรณ์ใหม่ๆ
               </p>
-              <div className="relative">
-                <input 
-                  type="email" 
-                  placeholder="กรอกอีเมลของคุณ" 
-                  className="w-full bg-transparent border border-emerald-400/50 rounded-xl px-4 py-3 text-sm text-white placeholder-emerald-200/50 focus:outline-none focus:border-white transition-colors"
-                />
-                <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <ArrowRight size={18} className="text-white" />
-                </button>
-              </div>
+              <a 
+                href="https://sci.pnru.ac.th"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 bg-white text-[#397d54] hover:bg-emerald-50 text-sm font-bold rounded-xl transition-all shadow-md group"
+              >
+                <span>ไปยังเว็บไซต์คณะ</span>
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </a>
             </div>
           </div>
           
