@@ -12,7 +12,7 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 2',
     description: 'ลูกฟุตบอลหนังเย็บ PU ทนทานสูง สำหรับสนามหญ้าและสนามดิน',
     icon: 'Activity',
-    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=800&auto=format&fit=crop'
+    image: 'https://png.pngtree.com/thumb_back/fh260/background/20240104/pngtree-soccer-football-ball-nestled-in-the-corner-of-a-vibrant-green-image_13926994.png'
   },
   {
     id: 'eq-2',
@@ -25,7 +25,7 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     location: 'ตู้เก็บอุปกรณ์ B - ตะกร้าซ้าย',
     description: 'ไม้แบดน้ำหนักเบา เฟรมคาร์บอนไฟเบอร์ ควบคุมทิศทางได้แม่นยำ',
     icon: 'Sword',
-    image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=800&auto=format&fit=crop'
+    image: 'https://www.thaiheartfound.org/upload/26025/userfiles/Apr5.jpg'
   },
   {
     id: 'eq-3',
@@ -38,7 +38,7 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     location: 'ตู้เก็บอุปกรณ์ A - ชั้น 3',
     description: 'ลูกวอลเลย์บอลรุ่นแข่งขัน หนังนุ่มสัมผัสเยี่ยม ไม่เจ็บแขน',
     icon: 'Disc',
-    image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=800&auto=format&fit=crop'
+    image: 'https://i.pinimg.com/1200x/34/9c/a6/349ca67d5d8d4b695bd0a3de71893040.jpg'
   },
   {
     id: 'eq-4',
@@ -64,7 +64,7 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     location: 'ตู้เก็บอุปกรณ์ B - ชั้นล่าง',
     description: 'ลูกตะกร้อใยสังเคราะห์สำหรับแข่งขันและฝึกซ้อม มีความยืดหยุ่นและการสปริงตัวที่ดีเยี่ยม',
     icon: 'Takraw',
-    image: 'https://library.sportingnews.com/styles/crop_style_16_9_desktop_webp/s3/2024-08/GettyImages-2154256230.jpg.webp?itok=2CsCO-Cm'
+    image: 'https://www.educatepark.com/wp-content/uploads/2017/08/takraw-thai-03.jpg'
   },
   {
     id: 'eq-6',
@@ -77,7 +77,7 @@ export const INITIAL_EQUIPMENT: Equipment[] = [
     location: 'กล่องเหล็กมุมห้องสโมฯ',
     description: 'ลูกเปตองชุบโครเมี่ยมลายเส้นมาตรฐาน พร้อมลูกแก่นและเชือกวัดระยะ',
     icon: 'Target',
-    image: 'https://www.newsportolympic.com/wp-content/uploads/2021/02/shutterstock_1101388403-scaled.jpg'
+    image: 'https://resource.nationtv.tv/uploads/images/md/2025/09/clPFWdTNCfGMj5oas9uT.webp?x-image-process=style/lg'
   }
 ];
 

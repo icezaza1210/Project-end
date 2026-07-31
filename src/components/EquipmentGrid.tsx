@@ -75,25 +75,123 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
     }
   };
 
-  // Simplified icon rendering (we can use emoji or lucide)
-  const renderSportIcon = (iconName: string, category: string) => {
-    const IconComponent = (LucideIcons as any)[iconName] || Box;
-    
-    let bgColor = "bg-gray-100 text-gray-600";
-    if (iconName === 'Activity' || iconName === 'Compass') {
-      bgColor = "bg-emerald-100 text-emerald-600";
-    } else if (iconName === 'Sword') {
-      bgColor = "bg-indigo-100 text-indigo-600";
-    } else if (iconName === 'Disc') {
-      bgColor = "bg-blue-100 text-blue-600";
-    } else if (iconName === 'Dribbble') {
-      bgColor = "bg-amber-100 text-amber-700";
-    } else if (iconName === 'Target') {
-      bgColor = "bg-slate-200 text-slate-700";
+  // Dedicated sport icon rendering matching each equipment item accurately
+  const renderSportIcon = (item: Equipment) => {
+    const text = `${item.name || ''} ${item.thaiName || ''} ${item.icon || ''} ${item.id || ''}`.toLowerCase();
+
+    // 1. ลูกฟุตบอล (Football)
+    if (text.includes('ฟุตบอล') || text.includes('football') || text.includes('soccer')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-emerald-700 shadow-md border border-emerald-200/80 backdrop-blur-sm" title="ลูกฟุตบอล">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polygon points="12 6 15 8.5 14 12 10 12 9 8.5 12 6" fill="currentColor" fillOpacity="0.25" />
+            <line x1="12" y1="2" x2="12" y2="6" />
+            <line x1="21.5" y1="8.5" x2="15" y2="8.5" />
+            <line x1="18" y1="19" x2="14" y2="12" />
+            <line x1="6" y1="19" x2="10" y2="12" />
+            <line x1="2.5" y1="8.5" x2="9" y2="8.5" />
+          </svg>
+        </div>
+      );
     }
-    
+
+    // 2. ไม้แบดมินตัน (Badminton Racket)
+    if (text.includes('แบดมินตัน') || text.includes('badminton') || text.includes('racket')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-indigo-700 shadow-md border border-indigo-200/80 backdrop-blur-sm" title="ไม้แบดมินตัน">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="15" cy="9" rx="5" ry="6" transform="rotate(-30 15 9)" fill="currentColor" fillOpacity="0.15" />
+            <path d="M12 7l6 4M13.5 5.5l3 5M16.5 12.5l-3-5" opacity="0.6" strokeWidth="1.2" />
+            <line x1="11" y1="13.5" x2="4" y2="20.5" strokeWidth="2.5" />
+            <path d="M6 6l3 3M5 9l2 2M8 4l2 2" />
+            <circle cx="4.5" cy="4.5" r="1.5" fill="currentColor" />
+          </svg>
+        </div>
+      );
+    }
+
+    // 3. ลูกวอลเลย์บอล (Volleyball)
+    if (text.includes('วอลเลย์บอล') || text.includes('volleyball')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-sky-700 shadow-md border border-sky-200/80 backdrop-blur-sm" title="ลูกวอลเลย์บอล">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15" />
+            <path d="M12 2a10 10 0 0 0-8.66 15" />
+            <path d="M12 22a10 10 0 0 0 8.66-15" />
+            <path d="M3.34 7a10 10 0 0 0 17.32 10" />
+            <path d="M12 12c-3.5 0-6.5-1.5-8.5-4" />
+            <path d="M12 12c1.75 3 4.75 4.5 8.25 4" />
+            <path d="M12 12c1.75-3 1.75-6.5.25-9.5" />
+          </svg>
+        </div>
+      );
+    }
+
+    // 4. ลูกฟุตซอล (Futsal Ball)
+    if (text.includes('ฟุตซอล') || text.includes('futsal')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-teal-700 shadow-md border border-teal-200/80 backdrop-blur-sm" title="ลูกฟุตซอล">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15" />
+            <polygon points="12 7 15.5 9.5 14 13.5 10 13.5 8.5 9.5" fill="currentColor" fillOpacity="0.3" />
+            <path d="M12 2v5M21.5 8.5H15.5M18.5 18.5L14 13.5M5.5 18.5L10 13.5M2.5 8.5h6" />
+          </svg>
+        </div>
+      );
+    }
+
+    // 5. ลูกตะกร้อ (Sepak Takraw)
+    if (text.includes('ตะกร้อ') || text.includes('takraw')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-amber-700 shadow-md border border-amber-200/80 backdrop-blur-sm" title="ลูกตะกร้อ">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.12" />
+            <circle cx="12" cy="12" r="4.5" strokeWidth="1.4" fill="currentColor" fillOpacity="0.25" />
+            <path d="M12 2c2.2 3 2.2 7 0 10" />
+            <path d="M12 22c-2.2-3-2.2-7 0-10" />
+            <path d="M2 12c3-2.2 7-2.2 10 0" />
+            <path d="M22 12c-3 2.2-7 2.2-10 0" />
+          </svg>
+        </div>
+      );
+    }
+
+    // 6. ลูกเปตอง (Petanque)
+    if (text.includes('เปตอง') || text.includes('petanque')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-slate-700 shadow-md border border-slate-300/80 backdrop-blur-sm" title="ลูกเปตอง">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="10" cy="13" r="7" fill="currentColor" fillOpacity="0.15" />
+            <path d="M6.5 9.5a7 7 0 0 1 7 0" />
+            <path d="M6 13a7 7 0 0 1 8 0" />
+            <circle cx="17.5" cy="7.5" r="4.5" fill="currentColor" fillOpacity="0.1" />
+            <path d="M14.8 6.5a4.5 4.5 0 0 1 5 0" />
+            <circle cx="5.5" cy="5.5" r="1.8" fill="currentColor" />
+          </svg>
+        </div>
+      );
+    }
+
+    // 7. บาสเกตบอล (Basketball)
+    if (text.includes('บาสเกตบอล') || text.includes('basketball')) {
+      return (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-orange-700 shadow-md border border-orange-200/80 backdrop-blur-sm" title="บาสเกตบอล">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15" />
+            <path d="M2 12h20" />
+            <path d="M12 2v20" />
+            <path d="M4.93 4.93a10 10 0 0 1 14.14 0" />
+            <path d="M4.93 19.07a10 10 0 0 0 14.14 0" />
+          </svg>
+        </div>
+      );
+    }
+
+    // Default fallback Lucide icon
+    const IconComponent = (LucideIcons as any)[item.icon] || Box;
     return (
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgColor}`}>
+      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/95 text-emerald-700 shadow-md border border-emerald-200/80 backdrop-blur-sm">
         <IconComponent size={20} />
       </div>
     );
@@ -166,7 +264,7 @@ export default function EquipmentGrid({ equipment, onSelectBooking }: EquipmentG
                     {renderStatusBadge(item.status)}
                   </div>
                   <div className="absolute top-3 left-3 z-10">
-                    {renderSportIcon(item.icon, item.category)}
+                    {renderSportIcon(item)}
                   </div>
                 </div>
 
