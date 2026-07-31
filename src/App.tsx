@@ -13,6 +13,7 @@ import LandingView from './components/LandingView';
 import SettingsModal from './components/SettingsModal';
 import StudentProfile from './components/StudentProfile';
 import HeroBanner from './components/HeroBanner';
+import RulesSection from './components/RulesSection';
 import { useSettings } from './contexts/SettingsContext';
 import { Trophy, Compass, ClipboardList, Shield, AlertCircle, Sparkles, LogOut, Lock, Settings, MessageCircle, X, Bell, Radio, Megaphone, Check, CheckCircle2, Info } from 'lucide-react';
 
@@ -58,7 +59,7 @@ export default function App() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'booking' | 'admin' | 'profile' | 'rules'>('catalog');
   const [preselectedEq, setPreselectedEq] = useState<Equipment | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -596,6 +597,18 @@ export default function App() {
                   <Compass size={14} />
                   {t('ตรวจสอบอุปกรณ์', 'Equipment')}
                 </button>
+                <button
+                  onClick={() => { setActiveTab('rules'); setPreselectedEq(null); }}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    activeTab === 'rules'
+                      ? 'bg-[#397d54] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  id="btn-nav-rules"
+                >
+                  <ClipboardList size={14} />
+                  {t('กฎระเบียบ', 'Rules')}
+                </button>
                 
                 
 
@@ -823,6 +836,19 @@ export default function App() {
                   equipment={equipment}
                   onSelectBooking={handleQuickBookSelect}
                 />
+              </motion.div>
+            )}
+
+            {activeTab === 'rules' && (
+              <motion.div
+                key="rules-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                id="rules-view-stage"
+              >
+                <RulesSection />
               </motion.div>
             )}
 
